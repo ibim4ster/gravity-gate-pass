@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_assignments: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           capacity: number
@@ -22,14 +51,18 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          gallery_urls: string[] | null
           id: string
           image_url: string | null
+          lineup: string | null
+          min_age: number | null
           organizer_id: string | null
           status: string
           time: string
           title: string
           updated_at: string
           venue: string
+          video_url: string | null
         }
         Insert: {
           capacity?: number
@@ -38,14 +71,18 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          gallery_urls?: string[] | null
           id?: string
           image_url?: string | null
+          lineup?: string | null
+          min_age?: number | null
           organizer_id?: string | null
           status?: string
           time: string
           title: string
           updated_at?: string
           venue: string
+          video_url?: string | null
         }
         Update: {
           capacity?: number
@@ -54,14 +91,18 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          gallery_urls?: string[] | null
           id?: string
           image_url?: string | null
+          lineup?: string | null
+          min_age?: number | null
           organizer_id?: string | null
           status?: string
           time?: string
           title?: string
           updated_at?: string
           venue?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -183,8 +224,11 @@ export type Database = {
       }
       tickets: {
         Row: {
+          buyer_dni: string | null
+          buyer_dob: string | null
           buyer_email: string
           buyer_name: string
+          buyer_phone: string | null
           buyer_user_id: string | null
           event_id: string
           id: string
@@ -199,8 +243,11 @@ export type Database = {
           used_at: string | null
         }
         Insert: {
+          buyer_dni?: string | null
+          buyer_dob?: string | null
           buyer_email: string
           buyer_name: string
+          buyer_phone?: string | null
           buyer_user_id?: string | null
           event_id: string
           id?: string
@@ -215,8 +262,11 @@ export type Database = {
           used_at?: string | null
         }
         Update: {
+          buyer_dni?: string | null
+          buyer_dob?: string | null
           buyer_email?: string
           buyer_name?: string
+          buyer_phone?: string | null
           buyer_user_id?: string | null
           event_id?: string
           id?: string
