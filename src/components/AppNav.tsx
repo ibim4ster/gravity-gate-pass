@@ -1,34 +1,26 @@
-import { useAppStore } from '@/lib/store';
-import { UserRole } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Ticket, ScanLine, LayoutDashboard, User, LogIn, LogOut } from 'lucide-react';
+import { Home, Ticket, ScanLine, LayoutDashboard, LogIn, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-const roleMenuItems: Record<UserRole, { label: string; path: string; icon: React.ElementType }[]> = {
-  guest: [
-    { label: 'Eventos', path: '/', icon: Home },
-  ],
-  client: [
-    { label: 'Eventos', path: '/', icon: Home },
-    { label: 'Mis Tickets', path: '/wallet', icon: Ticket },
-  ],
-  staff: [
-    { label: 'Eventos', path: '/', icon: Home },
-    { label: 'Scanner', path: '/scanner', icon: ScanLine },
-  ],
-  admin: [
-    { label: 'Eventos', path: '/', icon: Home },
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Scanner', path: '/scanner', icon: ScanLine },
-  ],
-};
-
 const AppNav = () => {
-  const { currentUser, switchRole, setUser } = useAppStore();
+  const { user, profile, roles, hasRole, signOut, loading } = useAuth();
   const location = useLocation();
-  const role = currentUser?.role ?? 'guest';
-  const items = roleMenuItems[role];
+
+  const items: { label: string; path: string; icon: React.ElementType }[] = [
+    { label: 'Eventos', path: '/', icon: Home },
+  ];
+
+  if (user) {
+    items.push({ label: 'Mis Tickets', path: '/wallet', icon: Ticket });
+  }
+  if (user && (hasRole('staff') || hasRole('admin'))) {
+    items.push({ label: 'Scanner', path: '/scanner', icon: ScanLine });
+  }
+  if (user && hasRole('admin')) {
+    items.push({ label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard });
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -70,36 +62,36 @@ const AppNav = () => {
           })}
         </nav>
 
-        {/* Role switcher (demo) */}
+        {/* Auth */}
         <div className="flex items-center gap-2">
-          {currentUser ? (
+          {!loading && user ? (
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground hidden sm:block">
-                <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium uppercase tracking-wider">
-                  {role}
-                </span>
+              <div className="hidden sm:flex items-center gap-2">
+                {roles.map((r) => (
+                  <span key={r} className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                    {r}
+                  </span>
+                ))}
+              </div>
+              <span className="text-sm text-muted-foreground hidden sm:block">
+                {profile?.display_name || user.email}
               </span>
               <button
-                onClick={() => setUser(null)}
+                onClick={signOut}
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Salir</span>
               </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              {(['client', 'staff', 'admin'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => switchRole(r)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all capitalize"
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          )}
+          ) : !loading ? (
+            <Link
+              to="/auth"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              Entrar
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -121,6 +113,15 @@ const AppNav = () => {
             </Link>
           );
         })}
+        {!user && (
+          <Link
+            to="/auth"
+            className="flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium text-muted-foreground"
+          >
+            <LogIn className="w-5 h-5" />
+            Entrar
+          </Link>
+        )}
       </nav>
     </header>
   );

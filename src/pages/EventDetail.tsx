@@ -1,46 +1,68 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/lib/store';
-import { Calendar, MapPin, Clock, Users, ArrowLeft, Tag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+import { Calendar, MapPin, Clock, Users, ArrowLeft, Tag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useState } from 'react';
+
+type Event = Tables<'events'>;
+type PriceTier = Tables<'price_tiers'>;
 
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const event = useAppStore((s) => s.events.find((e) => e.id === id));
+  const [event, setEvent] = useState<(Event & { price_tiers: PriceTier[] }) | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
-  if (!event) {
+  useEffect(() => {
+    const fetchEvent = async () => {
+      const { data } = await supabase
+        .from('events')
+        .select('*, price_tiers(*)')
+        .eq('id', id!)
+        .single();
+      if (data) setEvent(data as Event & { price_tiers: PriceTier[] });
+      setLoading(false);
+    };
+    if (id) fetchEvent();
+  }, [id]);
+
+  if (loading) {
     return (
-      <div className="container py-20 text-center">
-        <p className="text-muted-foreground">Evento no encontrado.</p>
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  const soldOutPercentage = Math.round((event.ticketsSold / event.capacity) * 100);
+  if (!event) {
+    return <div className="container py-20 text-center text-muted-foreground">Evento no encontrado.</div>;
+  }
+
+  const totalSold = event.price_tiers.reduce((s, t) => s + t.sold, 0);
+  const soldOutPercentage = event.capacity > 0 ? Math.round((totalSold / event.capacity) * 100) : 0;
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <div className="relative h-64 md:h-80 bg-secondary overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent z-10" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-6xl font-bold text-muted-foreground/10 tracking-[0.3em]">
-            {event.category.toUpperCase()}
-          </span>
-        </div>
+        {event.image_url ? (
+          <img src={event.image_url} alt={event.title} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-display text-6xl font-bold text-muted-foreground/10 tracking-[0.3em]">
+              {event.category.toUpperCase()}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="container -mt-20 relative z-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
@@ -53,9 +75,7 @@ const EventDetail = () => {
               <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
                 {event.category}
               </span>
-              <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-                {event.title}
-              </h1>
+              <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">{event.title}</h1>
               <p className="text-muted-foreground leading-relaxed">{event.description}</p>
             </div>
 
@@ -64,7 +84,7 @@ const EventDetail = () => {
                 { icon: Calendar, label: format(new Date(event.date), "d MMMM yyyy", { locale: es }) },
                 { icon: Clock, label: `${event.time}h` },
                 { icon: MapPin, label: `${event.venue}, ${event.city}` },
-                { icon: Users, label: `${event.ticketsSold}/${event.capacity}` },
+                { icon: Users, label: `${totalSold}/${event.capacity}` },
               ].map(({ icon: Icon, label }, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Icon className="w-4 h-4 text-primary shrink-0" />
@@ -73,7 +93,6 @@ const EventDetail = () => {
               ))}
             </div>
 
-            {/* Capacity bar */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Aforo</span>
@@ -89,13 +108,12 @@ const EventDetail = () => {
               </div>
             </div>
 
-            {/* Price tiers */}
             <div className="space-y-3">
               <h3 className="font-display font-semibold text-lg">Entradas</h3>
               <div className="grid gap-3">
-                {event.priceTiers.map((tier) => {
-                  const soldOut = tier.sold >= tier.maxQuantity;
-                  const expired = tier.expiresAt && new Date(tier.expiresAt) < new Date();
+                {event.price_tiers.map((tier) => {
+                  const soldOut = tier.sold >= tier.max_quantity;
+                  const expired = tier.expires_at && new Date(tier.expires_at) < new Date();
                   const unavailable = soldOut || !!expired;
 
                   return (
@@ -116,11 +134,7 @@ const EventDetail = () => {
                         <div className="text-left">
                           <p className="font-medium text-foreground">{tier.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {soldOut
-                              ? 'Agotado'
-                              : expired
-                              ? 'Expirado'
-                              : `${tier.maxQuantity - tier.sold} restantes`}
+                            {soldOut ? 'Agotado' : expired ? 'Expirado' : `${tier.max_quantity - tier.sold} restantes`}
                           </p>
                         </div>
                       </div>

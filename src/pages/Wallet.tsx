@@ -1,65 +1,78 @@
-import { useAppStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Tables } from '@/integrations/supabase/types';
 import { Link } from 'react-router-dom';
-import { Ticket, Calendar, ArrowRight } from 'lucide-react';
+import { Ticket, Calendar, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const Wallet = () => {
-  const { currentUser, tickets } = useAppStore();
-  const userTickets = tickets.filter((t) => t.buyerEmail === currentUser?.email);
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<Tables<'tickets'>[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('buyer_user_id', user.id)
+        .order('purchased_at', { ascending: false });
+      setTickets(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="container py-20 text-center space-y-4">
+        <Ticket className="w-12 h-12 text-muted-foreground mx-auto" />
+        <p className="text-muted-foreground">Inicia sesión para ver tus tickets.</p>
+        <Link to="/auth" className="text-primary text-sm font-medium hover:underline">Iniciar Sesión →</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-12 max-w-2xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <div className="space-y-1">
           <h1 className="font-display text-3xl font-bold">Mi Wallet</h1>
           <p className="text-muted-foreground text-sm">Tus entradas en un solo lugar.</p>
         </div>
 
-        {userTickets.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>
+        ) : tickets.length === 0 ? (
           <div className="card-glass rounded-xl p-12 text-center space-y-4">
             <Ticket className="w-12 h-12 text-muted-foreground mx-auto" />
             <p className="text-muted-foreground">No tienes tickets aún.</p>
-            <Link to="/" className="text-primary text-sm font-medium hover:underline">
-              Explorar eventos →
-            </Link>
+            <Link to="/" className="text-primary text-sm font-medium hover:underline">Explorar eventos →</Link>
           </div>
         ) : (
           <div className="space-y-3">
-            {userTickets.map((ticket, i) => (
-              <motion.div
-                key={ticket.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Link
-                  to={`/ticket/${ticket.id}`}
-                  className="block card-glass rounded-xl p-4 hover:border-primary/30 transition-all group"
-                >
+            {tickets.map((ticket, i) => (
+              <motion.div key={ticket.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
+                <Link to={`/ticket/${ticket.id}`} className="block card-glass rounded-xl p-4 hover:border-primary/30 transition-all group">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <h3 className="font-display font-semibold group-hover:text-primary transition-colors">
-                        {ticket.eventTitle}
+                        {ticket.tier_name} — {ticket.price}€
                       </h3>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(ticket.eventDate), "d MMM yyyy", { locale: es })}
+                          {format(new Date(ticket.purchased_at), "d MMM yyyy", { locale: es })}
                         </span>
-                        <span className="text-primary font-medium">{ticket.tierName}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        ticket.status === 'valid'
-                          ? 'bg-success/10 text-success'
-                          : 'bg-muted text-muted-foreground'
+                        ticket.status === 'valid' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
                       }`}>
                         {ticket.status === 'valid' ? 'Válido' : 'Usado'}
                       </span>
