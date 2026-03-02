@@ -1,12 +1,32 @@
-import { useAppStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
 import EventCard from '@/components/EventCard';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Loader2 } from 'lucide-react';
+
+type Event = Tables<'events'>;
+type PriceTier = Tables<'price_tiers'>;
+type EventWithTiers = Event & { price_tiers: PriceTier[] };
 
 const Index = () => {
-  const events = useAppStore((s) => s.events);
+  const [events, setEvents] = useState<EventWithTiers[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*, price_tiers(*)')
+        .order('date', { ascending: true });
+      if (!error && data) {
+        setEvents(data as EventWithTiers[]);
+      }
+      setLoading(false);
+    };
+    fetchEvents();
+  }, []);
 
   const filtered = events.filter(
     (e) =>
@@ -17,7 +37,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
       <section className="relative py-20 overflow-hidden bg-glow">
         <div className="container relative z-10">
           <motion.div
@@ -32,8 +51,6 @@ const Index = () => {
             <p className="text-lg text-muted-foreground leading-relaxed">
               Descubre experiencias únicas. Compra tus entradas al instante, sin registro obligatorio.
             </p>
-
-            {/* Search */}
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -48,15 +65,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Events Grid */}
       <section className="container py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((event, i) => (
-            <EventCard key={event.id} event={event} index={i} />
-          ))}
-        </div>
-        {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-20">No se encontraron eventos.</p>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((event, i) => (
+              <EventCard key={event.id} event={event} index={i} />
+            ))}
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <p className="text-center text-muted-foreground py-20">
+            No se encontraron eventos. {events.length === 0 && 'Inicia sesión como admin para crear eventos.'}
+          </p>
         )}
       </section>
     </div>
