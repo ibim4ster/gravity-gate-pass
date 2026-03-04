@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, Calendar, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, Calendar, MapPin, Clock, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -47,15 +47,14 @@ const Checkout = () => {
     }
   }, [user, profile]);
 
-  if (pageLoading) {
-    return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
-  }
-  if (!event || !tier) {
-    return <div className="container py-20 text-center text-muted-foreground">Datos no válidos.</div>;
-  }
+  if (pageLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
+  if (!event || !tier) return <div className="container py-20 text-center text-muted-foreground">Datos no válidos.</div>;
 
   const handlePurchase = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim() || !dni.trim() || !dob) return;
+    if (!name.trim() || !email.trim() || !phone.trim() || !dni.trim() || !dob) {
+      toast.error('Completa todos los campos obligatorios');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -78,6 +77,7 @@ const Checkout = () => {
 
       if (error) throw error;
 
+      // Increment sold count
       await supabase
         .from('price_tiers')
         .update({ sold: tier.sold + 1 })
@@ -86,6 +86,7 @@ const Checkout = () => {
       toast.success('¡Entrada comprada con éxito!');
       navigate(`/ticket/${ticket.id}`);
     } catch (err: any) {
+      console.error('Purchase error:', err);
       toast.error(err.message || 'Error al comprar');
     } finally {
       setLoading(false);
@@ -97,21 +98,21 @@ const Checkout = () => {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
 
-        <div className="card-glass rounded-2xl p-6 space-y-6">
+        <div className="glass-card p-6 space-y-6">
           <div className="space-y-1">
-            <h2 className="font-display text-2xl font-bold">Compra Express</h2>
-            <p className="text-sm text-muted-foreground">Sin registro. Recibe tu ticket al instante.</p>
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              <h2 className="font-display text-2xl font-bold">Compra Express</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Sin registro obligatorio. Recibe tu ticket al instante.</p>
           </div>
 
           {/* Event summary */}
-          <div className="p-4 rounded-xl bg-secondary/50 border border-border space-y-3">
+          <div className="p-4 rounded-xl bg-muted border border-border space-y-3">
             <p className="font-display font-semibold text-foreground">{event.title}</p>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-primary" />{format(new Date(event.date), "d MMM yyyy", { locale: es })}</span>
@@ -124,29 +125,29 @@ const Checkout = () => {
             </div>
           </div>
 
-          {/* Form fields */}
+          {/* Form */}
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre completo *</Label>
+              <Input id="name" placeholder="Nombre y apellidos" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input id="email" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="name">Nombre completo *</Label>
-                <Input id="name" placeholder="Nombre y apellidos" value={name} onChange={(e) => setName(e.target.value)} className="bg-secondary border-border" />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary border-border" />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Teléfono *</Label>
-                <Input id="phone" type="tel" placeholder="+34 600 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border" />
+                <Input id="phone" type="tel" placeholder="+34 600..." value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dni">DNI / Pasaporte *</Label>
-                <Input id="dni" placeholder="12345678A" value={dni} onChange={(e) => setDni(e.target.value)} className="bg-secondary border-border" />
+                <Input id="dni" placeholder="12345678A" value={dni} onChange={(e) => setDni(e.target.value)} />
               </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="dob">Fecha de nacimiento *</Label>
-                <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="bg-secondary border-border" />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dob">Fecha de nacimiento *</Label>
+              <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
             </div>
           </div>
 
@@ -154,7 +155,7 @@ const Checkout = () => {
             size="lg"
             disabled={!isFormValid || loading}
             onClick={handlePurchase}
-            className="w-full font-display font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-primary"
+            className="w-full font-display font-semibold rounded-xl shadow-lg shadow-primary/20"
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</>
