@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import EventCard from '@/components/EventCard';
 import { motion } from 'framer-motion';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Sparkles } from 'lucide-react';
 
 type Event = Tables<'events'>;
 type PriceTier = Tables<'price_tiers'>;
@@ -37,20 +37,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <section className="relative py-20 overflow-hidden bg-glow">
-        <div className="container relative z-10">
+      <section className="py-12 md:py-16">
+        <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-2xl mx-auto text-center space-y-6"
+            transition={{ duration: 0.5 }}
+            className="max-w-2xl mx-auto text-center space-y-6 mb-10"
           >
-            <h1 className="font-display text-5xl md:text-6xl font-bold tracking-tight">
-              <span className="text-gradient">Gravity</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              Próximos eventos
+            </div>
+            <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
+              Descubre experiencias
             </h1>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Descubre experiencias únicas. Compra tus entradas al instante, sin registro obligatorio.
-            </p>
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -58,30 +59,31 @@ const Index = () => {
                 placeholder="Buscar eventos, ciudades..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
               />
             </div>
           </motion.div>
-        </div>
-      </section>
 
-      <section className="container py-12">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map((event, i) => (
-              <EventCard key={event.id} event={event} index={i} />
-            ))}
-          </div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-20">
-            No se encontraron eventos. {events.length === 0 && 'Inicia sesión como admin para crear eventos.'}
-          </p>
-        )}
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filtered.map((event, i) => (
+                <EventCard key={event.id} event={event} index={i} />
+              ))}
+            </div>
+          )}
+          {!loading && filtered.length === 0 && (
+            <div className="text-center py-20 space-y-3">
+              <p className="text-muted-foreground">No se encontraron eventos.</p>
+              {events.length === 0 && (
+                <p className="text-sm text-muted-foreground">Inicia sesión como admin para crear eventos.</p>
+              )}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
