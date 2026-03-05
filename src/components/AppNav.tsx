@@ -21,8 +21,6 @@ const AppNav = () => {
   }
   if (user && (hasRole('staff') || hasRole('admin'))) {
     items.push({ label: 'Scanner', path: '/scanner', icon: ScanLine });
-  }
-  if (user && hasRole('admin')) {
     items.push({ label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard });
   }
 
