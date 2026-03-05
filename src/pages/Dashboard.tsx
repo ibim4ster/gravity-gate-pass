@@ -89,33 +89,21 @@ const Dashboard = () => {
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '', display_name: '', role: 'client' });
 
   const fetchData = async () => {
-    const queries: Promise<any>[] = [
+    const [eventsRes, logsRes] = await Promise.all([
       supabase.from('events').select('*, price_tiers(*)').order('date'),
       supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false }).limit(200),
-    ];
-
-    if (isAdmin) {
-      queries.push(
-        supabase.from('tickets').select('*').order('purchased_at', { ascending: false }),
-        supabase.from('profiles').select('*'),
-        supabase.from('user_roles').select('*'),
-        supabase.from('event_assignments').select('*'),
-      );
-    } else {
-      // Staff: only see tickets for assigned events
-      queries.push(
-        supabase.from('event_assignments').select('*').eq('user_id', user!.id),
-      );
-    }
-
-    const results = await Promise.all(queries);
-    const [eventsRes, logsRes] = results;
+    ]);
 
     if (eventsRes.data) setEvents(eventsRes.data as EventWithTiers[]);
     if (logsRes.data) setScanLogs(logsRes.data);
 
     if (isAdmin) {
-      const [,, ticketsRes, profilesRes, rolesRes, assignRes] = results;
+      const [ticketsRes, profilesRes, rolesRes, assignRes] = await Promise.all([
+        supabase.from('tickets').select('*').order('purchased_at', { ascending: false }),
+        supabase.from('profiles').select('*'),
+        supabase.from('user_roles').select('*'),
+        supabase.from('event_assignments').select('*'),
+      ]);
       if (ticketsRes.data) setTickets(ticketsRes.data);
       if (assignRes.data) setAssignments(assignRes.data);
 
@@ -135,11 +123,11 @@ const Dashboard = () => {
         })));
       }
     } else if (isStaff) {
-      const [,, assignRes] = results;
-      if (assignRes.data) {
-        setAssignments(assignRes.data);
-        const assignedEventIds = assignRes.data.map((a: any) => a.event_id);
-        // Fetch tickets for assigned events only
+      const { data: assignData } = await supabase
+        .from('event_assignments').select('*').eq('user_id', user!.id);
+      if (assignData) {
+        setAssignments(assignData);
+        const assignedEventIds = assignData.map((a: any) => a.event_id);
         if (assignedEventIds.length > 0) {
           const { data: staffTickets } = await supabase
             .from('tickets')
