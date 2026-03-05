@@ -5,9 +5,9 @@ import { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScanLine, CheckCircle2, XCircle, Search, Camera, AlertTriangle, Zap } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { ScanLine, CheckCircle2, XCircle, Search, Camera, AlertTriangle, Zap, CameraOff } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface ScanResult {
   status: 'valid' | 'already_used' | 'invalid';
@@ -20,7 +20,11 @@ const Scanner = () => {
   const [manualCode, setManualCode] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animFrameRef = useRef<number>(0);
   const processingRef = useRef(false);
 
   const canScan = hasRole('staff') || hasRole('admin');
@@ -92,32 +96,70 @@ const Scanner = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    return () => { scannerRef.current?.stop().catch(() => {}); };
-  }, []);
-
   const startCamera = async () => {
+    setCameraError(null);
     try {
-      const scanner = new Html5Qrcode('qr-reader');
-      scannerRef.current = scanner;
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => validateTicket(decodedText),
-        () => {}
-      );
-      setCameraActive(true);
-    } catch (err) {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setCameraActive(true);
+        scanFrame();
+      }
+    } catch (err: any) {
       console.error('Camera error:', err);
+      setCameraError(err.name === 'NotAllowedError' 
+        ? 'Permiso de cámara denegado. Activa el permiso en la configuración del navegador.' 
+        : 'No se pudo acceder a la cámara. Asegúrate de que no esté en uso por otra aplicación.');
+      toast.error('Error al acceder a la cámara');
     }
   };
 
-  const stopCamera = async () => {
-    if (scannerRef.current) {
-      await scannerRef.current.stop().catch(() => {});
-      setCameraActive(false);
+  const scanFrame = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      animFrameRef.current = requestAnimationFrame(scanFrame);
+      return;
     }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+
+    // Use BarcodeDetector API if available
+    if ('BarcodeDetector' in window) {
+      const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+      detector.detect(canvas).then((barcodes: any[]) => {
+        if (barcodes.length > 0 && !processingRef.current) {
+          validateTicket(barcodes[0].rawValue);
+        }
+      }).catch(() => {});
+    }
+
+    animFrameRef.current = requestAnimationFrame(scanFrame);
   };
+
+  const stopCamera = () => {
+    cancelAnimationFrame(animFrameRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  useEffect(() => {
+    return () => { stopCamera(); };
+  }, []);
 
   const handleManualScan = () => {
     if (manualCode.trim()) {
@@ -132,16 +174,38 @@ const Scanner = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Camera viewport */}
-      <div className="flex-1 relative bg-muted flex items-center justify-center min-h-[55vh]">
-        <div id="qr-reader" className={`w-full max-w-md ${cameraActive ? '' : 'hidden'}`} />
+      <div className="flex-1 relative bg-black flex items-center justify-center min-h-[55vh]">
+        <video ref={videoRef} className={`w-full h-full object-cover absolute inset-0 ${cameraActive ? '' : 'hidden'}`} playsInline muted />
+        <canvas ref={canvasRef} className="hidden" />
+
+        {cameraActive && (
+          <>
+            {/* Scanner overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="relative w-64 h-64">
+                <div className="absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_20px_hsl(217,91%,60%)] animate-scanner" />
+                {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
+                  <div key={i} className={`absolute ${pos} w-10 h-10 border-primary ${
+                    i === 0 ? 'border-t-3 border-l-3 rounded-tl-2xl' :
+                    i === 1 ? 'border-t-3 border-r-3 rounded-tr-2xl' :
+                    i === 2 ? 'border-b-3 border-l-3 rounded-bl-2xl' :
+                    'border-b-3 border-r-3 rounded-br-2xl'
+                  }`} />
+                ))}
+              </div>
+            </div>
+            <Button onClick={stopCamera} variant="outline" className="absolute top-4 right-4 z-30 rounded-xl gap-2 bg-background/80 backdrop-blur-sm">
+              <CameraOff className="w-4 h-4" /> Detener
+            </Button>
+          </>
+        )}
 
         {!cameraActive && (
           <div className="text-center space-y-6 p-8">
-            <div className="relative w-64 h-64 border-2 border-primary/30 rounded-3xl overflow-hidden mx-auto bg-background/50">
-              <div className="absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_20px_hsl(217,91%,60%)] animate-scanner" />
+            <div className="relative w-64 h-64 border-2 border-primary/30 rounded-3xl overflow-hidden mx-auto bg-background/10">
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <Camera className="w-12 h-12 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">Pulsa para activar</p>
+                <Camera className="w-12 h-12 text-white/30" />
+                <p className="text-sm text-white/60">Pulsa para activar</p>
               </div>
               {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
                 <div key={i} className={`absolute ${pos} w-8 h-8 border-primary ${
@@ -152,16 +216,18 @@ const Scanner = () => {
                 }`} />
               ))}
             </div>
+            {cameraError && (
+              <div className="max-w-sm mx-auto p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                {cameraError}
+              </div>
+            )}
             <Button onClick={startCamera} size="lg" className="rounded-xl gap-2 shadow-lg shadow-primary/20">
               <Zap className="w-4 h-4" /> Activar Cámara
             </Button>
+            <p className="text-xs text-white/40 max-w-xs mx-auto">
+              Si el escaneo automático no funciona, usa la búsqueda manual de abajo.
+            </p>
           </div>
-        )}
-
-        {cameraActive && (
-          <Button onClick={stopCamera} variant="outline" className="absolute top-4 right-4 z-30 rounded-xl">
-            Detener
-          </Button>
         )}
 
         {/* Result overlay */}
@@ -171,23 +237,23 @@ const Scanner = () => {
               className="absolute inset-x-4 top-4 flex justify-center z-30"
             >
               <div className={`w-full max-w-sm p-8 rounded-3xl border-2 text-center space-y-4 backdrop-blur-xl ${
-                result.status === 'valid' ? 'border-success bg-success/10'
-                : result.status === 'already_used' ? 'border-warning bg-warning/10'
-                : 'border-destructive bg-destructive/10'
+                result.status === 'valid' ? 'border-green-500 bg-green-500/20'
+                : result.status === 'already_used' ? 'border-yellow-500 bg-yellow-500/20'
+                : 'border-red-500 bg-red-500/20'
               }`}>
                 {result.status === 'valid' ? (
-                  <CheckCircle2 className="w-20 h-20 mx-auto text-success" />
+                  <CheckCircle2 className="w-20 h-20 mx-auto text-green-500" />
                 ) : result.status === 'already_used' ? (
-                  <AlertTriangle className="w-20 h-20 mx-auto text-warning" />
+                  <AlertTriangle className="w-20 h-20 mx-auto text-yellow-500" />
                 ) : (
-                  <XCircle className="w-20 h-20 mx-auto text-destructive" />
+                  <XCircle className="w-20 h-20 mx-auto text-red-500" />
                 )}
-                <p className="font-display text-2xl font-bold">
+                <p className="font-display text-2xl font-bold text-white">
                   {result.status === 'valid' ? '✓ VÁLIDO' : result.status === 'already_used' ? '⚠ YA CANJEADO' : '✗ INVÁLIDO'}
                 </p>
-                {result.ticket && <p className="text-xl font-semibold text-foreground">{result.ticket.buyer_name}</p>}
-                <p className="text-sm text-muted-foreground">{result.message}</p>
-                <Button variant="outline" onClick={() => setResult(null)} className="mt-2 rounded-xl">Escanear otro</Button>
+                {result.ticket && <p className="text-xl font-semibold text-white">{result.ticket.buyer_name}</p>}
+                <p className="text-sm text-white/70">{result.message}</p>
+                <Button variant="outline" onClick={() => setResult(null)} className="mt-2 rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20">Escanear otro</Button>
               </div>
             </motion.div>
           )}
