@@ -490,8 +490,28 @@ const Dashboard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5"><Image className="w-3.5 h-3.5" /> URL Imagen del bar</Label>
-                    <Input value={eventForm.image_url} onChange={e => setEventForm({ ...eventForm, image_url: e.target.value })} placeholder="https://..." />
+                    <Label className="flex items-center gap-1.5"><Image className="w-3.5 h-3.5" /> Imagen del bar</Label>
+                    <Input value={eventForm.image_url} onChange={e => setEventForm({ ...eventForm, image_url: e.target.value })} placeholder="https://... o sube una imagen" />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split('.').pop();
+                        const path = `bars/${Date.now()}.${ext}`;
+                        const { error } = await supabase.storage.from('bar-images').upload(path, file);
+                        if (error) { toast.error('Error subiendo imagen'); return; }
+                        const { data: { publicUrl } } = supabase.storage.from('bar-images').getPublicUrl(path);
+                        setEventForm(prev => ({ ...prev, image_url: publicUrl }));
+                        toast.success('Imagen subida');
+                      }}
+                    />
+                    <Button type="button" variant="outline" size="sm" className="rounded-xl gap-2" onClick={() => imageInputRef.current?.click()}>
+                      <Upload className="w-3.5 h-3.5" /> Subir imagen
+                    </Button>
                     {eventForm.image_url && (
                       <div className="mt-2 h-24 rounded-lg overflow-hidden border border-border">
                         <img src={eventForm.image_url} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
