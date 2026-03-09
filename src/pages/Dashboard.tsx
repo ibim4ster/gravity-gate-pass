@@ -183,6 +183,7 @@ const Dashboard = () => {
         id: t.id, name: t.name, price: String(t.price),
         maxQuantity: String(t.max_quantity),
         expiresAt: t.expires_at ? t.expires_at.slice(0, 16) : '',
+        description: (t as any).description || '',
       })),
     });
     setTab('events');
