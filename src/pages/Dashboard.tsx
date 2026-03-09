@@ -926,7 +926,7 @@ const Dashboard = () => {
                     const ev = events.find(e => e.id === a.event_id);
                     return (
                       <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-muted">
-                        <span className="text-sm"><span className="font-medium">{u?.display_name || u?.email || 'Desconocido'}</span> → <span className="text-primary font-medium">{ev?.title || 'Evento'}</span></span>
+                        <span className="text-sm"><span className="font-medium">{u?.display_name || u?.email || 'Desconocido'}</span> → <span className="text-primary font-medium">{ev?.title || 'Bar'}</span></span>
                         <Button size="sm" variant="ghost" className="text-destructive h-7 w-7 p-0" onClick={() => removeAssignment(a.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
