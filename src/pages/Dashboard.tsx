@@ -447,8 +447,11 @@ const Dashboard = () => {
         {/* EVENTS - Admin only */}
         {tab === 'events' && isAdmin && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{events.length} bares</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar bares..." value={barSearch} onChange={e => setBarSearch(e.target.value)} className="pl-10" />
+              </div>
               <Button onClick={() => { resetEventForm(); setShowCreateEvent(true); }} className="rounded-xl gap-2">
                 <Plus className="w-4 h-4" /> Nuevo Bar
               </Button>
