@@ -3,16 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Tables } from '@/integrations/supabase/types';
 import { Link } from 'react-router-dom';
-import { Ticket, Calendar, ArrowRight, Loader2, Wallet as WalletIcon, Clock } from 'lucide-react';
+import { Ticket, Calendar, ArrowRight, Loader2, Wallet as WalletIcon, Clock, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Wallet = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<(Tables<'tickets'> & { events?: Tables<'events'> | null })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'valid' | 'used'>('all');
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -49,28 +51,45 @@ const Wallet = () => {
     );
   }
 
+  const filtered = statusFilter === 'all' ? tickets : tickets.filter(t => t.status === statusFilter);
+
   return (
     <div className="container py-12 max-w-2xl">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="font-display text-3xl font-bold tracking-tight">Mis Packs</h1>
-          <p className="text-muted-foreground text-sm">Tus packs comprados en un solo lugar.</p>
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="font-display text-3xl font-bold tracking-tight">Mis Packs</h1>
+            <p className="text-muted-foreground text-sm">Tus packs comprados en un solo lugar.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos ({tickets.length})</SelectItem>
+                <SelectItem value="valid">Válidos ({tickets.filter(t => t.status === 'valid').length})</SelectItem>
+                <SelectItem value="used">Canjeados ({tickets.filter(t => t.status === 'used').length})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>
-        ) : tickets.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="glass-card p-12 text-center space-y-4">
             <Ticket className="w-12 h-12 text-muted-foreground mx-auto" />
-            <p className="text-muted-foreground">No tienes packs aún.</p>
-            <Link to="/events">
-              <Button variant="outline" className="rounded-xl">Explorar bares →</Button>
-            </Link>
+            <p className="text-muted-foreground">{statusFilter === 'all' ? 'No tienes packs aún.' : `No tienes packs ${statusFilter === 'valid' ? 'válidos' : 'canjeados'}.`}</p>
+            {statusFilter === 'all' && (
+              <Link to="/">
+                <Button variant="outline" className="rounded-xl">Explorar bares →</Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {tickets.map((ticket, i) => {
-              const qty = (ticket as any).quantity || 1;
+            {filtered.map((ticket, i) => {
+              const qty = ticket.quantity || 1;
               return (
                 <motion.div key={ticket.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
                   <Link to={`/ticket/${ticket.id}`} className="block glass-card-hover p-4 group">
@@ -100,7 +119,7 @@ const Wallet = () => {
                           </span>
                         )}
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                          ticket.status === 'valid' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                          ticket.status === 'valid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'
                         }`}>
                           {ticket.status === 'valid' ? 'Válido' : 'Canjeado'}
                         </span>

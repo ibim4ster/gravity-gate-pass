@@ -5,14 +5,17 @@ import { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScanLine, CheckCircle2, XCircle, Search, Camera, AlertTriangle, Zap, CameraOff } from 'lucide-react';
+import { ScanLine, CheckCircle2, XCircle, Search, Camera, AlertTriangle, Zap, CameraOff, User, MapPin, Package, Clock, Hash, RotateCcw } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface ScanResult {
   status: 'valid' | 'already_used' | 'invalid';
   ticket?: Tables<'tickets'>;
+  eventName?: string;
   message: string;
 }
 
@@ -34,12 +37,13 @@ const Scanner = () => {
   const isStaff = hasRole('staff');
   const canScan = isStaff || isAdmin;
 
-  // Fetch assigned events for staff
   useEffect(() => {
     const fetchAssignments = async () => {
       if (!user) return;
       if (isAdmin) {
-        setAssignedEventIds(null); // admin can scan all
+        setAssignedEventIds(null);
+        const { data: evts } = await supabase.from('events').select('*');
+        setEvents(evts || []);
         return;
       }
       const { data } = await supabase
@@ -76,9 +80,12 @@ const Scanner = () => {
         return;
       }
 
-      // Staff restriction: only scan tickets for assigned bars
+      const ev = events.find(e => e.id === ticket.event_id);
+      const eventName = ev?.title || 'Bar desconocido';
+
+      // Staff restriction
       if (!isAdmin && assignedEventIds && !assignedEventIds.includes(ticket.event_id)) {
-        setResult({ status: 'invalid', ticket, message: 'Este ticket no pertenece a tu bar asignado' });
+        setResult({ status: 'invalid', ticket, eventName, message: 'Este ticket no pertenece a tu bar asignado' });
         if (user) {
           await supabase.from('scan_logs').insert({
             ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
@@ -89,7 +96,7 @@ const Scanner = () => {
       }
 
       if (qrSignature && ticket.qr_signature !== qrSignature) {
-        setResult({ status: 'invalid', ticket, message: 'Firma digital no válida — posible falsificación' });
+        setResult({ status: 'invalid', ticket, eventName, message: 'Firma digital no válida — posible falsificación' });
         if (user) {
           await supabase.from('scan_logs').insert({
             ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
@@ -100,7 +107,7 @@ const Scanner = () => {
       }
 
       if (ticket.status === 'used') {
-        setResult({ status: 'already_used', ticket, message: `Ya canjeado el ${new Date(ticket.used_at!).toLocaleString('es')}` });
+        setResult({ status: 'already_used', ticket, eventName, message: `Ya canjeado el ${format(new Date(ticket.used_at!), "d MMM yyyy 'a las' HH:mm", { locale: es })}` });
         if (user) {
           await supabase.from('scan_logs').insert({
             ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
@@ -119,40 +126,31 @@ const Scanner = () => {
         });
       }
 
-      const qty = (ticket as any).quantity || 1;
-      const qtyMsg = qty > 1 ? ` (${qty} uds.)` : '';
-      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, message: `Canje válido ✓${qtyMsg}` });
+      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, eventName, message: 'Canje realizado con éxito' });
     } catch {
       setResult({ status: 'invalid', message: 'Error al validar' });
     } finally {
       setTimeout(() => { processingRef.current = false; }, 1500);
     }
-  }, [user, isAdmin, assignedEventIds]);
+  }, [user, isAdmin, assignedEventIds, events]);
 
   const startCamera = async () => {
     setCameraError(null);
     try {
       setCameraActive(true);
       await new Promise((resolve) => setTimeout(resolve, 100));
-
       const html5 = new Html5Qrcode(QR_READER_ID, { verbose: false });
       html5QrRef.current = html5;
-
       await html5.start(
         { facingMode: 'environment' },
         { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1 },
-        (decodedText) => {
-          if (!processingRef.current) void validateTicket(decodedText);
-        },
+        (decodedText) => { if (!processingRef.current) void validateTicket(decodedText); },
         () => {}
       );
     } catch (err: any) {
-      console.error('Camera error:', err);
-      setCameraError(
-        err?.name === 'NotAllowedError'
-          ? 'Permiso de cámara denegado. Activa el permiso en la configuración del navegador.'
-          : 'No se pudo acceder a la cámara. Asegúrate de usar HTTPS y conceder permisos.'
-      );
+      setCameraError(err?.name === 'NotAllowedError'
+        ? 'Permiso de cámara denegado. Activa el permiso en la configuración del navegador.'
+        : 'No se pudo acceder a la cámara. Asegúrate de usar HTTPS y conceder permisos.');
       toast.error('Error al acceder a la cámara');
       setCameraActive(false);
     }
@@ -167,9 +165,7 @@ const Scanner = () => {
     setCameraActive(false);
   }, []);
 
-  useEffect(() => {
-    return () => { void stopCamera(); };
-  }, [stopCamera]);
+  useEffect(() => { return () => { void stopCamera(); }; }, [stopCamera]);
 
   const handleManualScan = () => {
     if (manualCode.trim()) {
@@ -178,19 +174,24 @@ const Scanner = () => {
     }
   };
 
+  const handleScanAnother = () => {
+    setResult(null);
+    processingRef.current = false;
+  };
+
   if (authLoading) return null;
   if (!user || !canScan) return <Navigate to="/" replace />;
 
+  const qty = result?.ticket?.quantity || 1;
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Staff bar info banner */}
       {!isAdmin && assignedEventIds && (
         <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 text-center">
           <p className="text-xs font-medium text-primary">
             {assignedEventIds.length > 0
               ? `Escaneando para: ${events.map(e => e.title).join(', ')}`
-              : 'No tienes ningún bar asignado. Contacta con el administrador.'
-            }
+              : 'No tienes ningún bar asignado. Contacta con el administrador.'}
           </p>
         </div>
       )}
@@ -200,13 +201,13 @@ const Scanner = () => {
           <div id={QR_READER_ID} className="h-full w-full [&_video]{object-fit:cover;width:100%;height:100%}" />
         </div>
 
-        {cameraActive && (
+        {cameraActive && !result && (
           <Button onClick={() => void stopCamera()} variant="outline" className="absolute top-4 right-4 z-30 rounded-xl gap-2 bg-background/80 backdrop-blur-sm">
             <CameraOff className="w-4 h-4" /> Detener
           </Button>
         )}
 
-        {!cameraActive && (
+        {!cameraActive && !result && (
           <div className="text-center space-y-6 p-8">
             <div className="relative w-64 h-64 border-2 border-primary/30 rounded-3xl overflow-hidden mx-auto bg-background/10">
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -228,21 +229,76 @@ const Scanner = () => {
 
         <AnimatePresence>
           {result && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="absolute inset-x-4 top-4 flex justify-center z-30">
-              <div className={`w-full max-w-sm p-8 rounded-3xl border-2 text-center space-y-4 backdrop-blur-xl ${result.status === 'valid' ? 'border-green-500 bg-green-500/20' : result.status === 'already_used' ? 'border-yellow-500 bg-yellow-500/20' : 'border-red-500 bg-red-500/20'}`}>
-                {result.status === 'valid' ? <CheckCircle2 className="w-20 h-20 mx-auto text-green-500" /> : result.status === 'already_used' ? <AlertTriangle className="w-20 h-20 mx-auto text-yellow-500" /> : <XCircle className="w-20 h-20 mx-auto text-red-500" />}
-                <p className="font-display text-2xl font-bold text-white">{result.status === 'valid' ? '✓ VÁLIDO' : result.status === 'already_used' ? '⚠ YA CANJEADO' : '✗ INVÁLIDO'}</p>
-                {result.ticket && <p className="text-xl font-semibold text-white">{result.ticket.buyer_name}</p>}
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="absolute inset-4 flex items-center justify-center z-30">
+              <div className={`w-full max-w-md p-6 rounded-3xl border-2 backdrop-blur-xl space-y-5 ${
+                result.status === 'valid' ? 'border-green-500 bg-green-500/20' :
+                result.status === 'already_used' ? 'border-yellow-500 bg-yellow-500/20' :
+                'border-red-500 bg-red-500/20'
+              }`}>
+                {/* Status icon */}
+                <div className="text-center">
+                  {result.status === 'valid' ? <CheckCircle2 className="w-16 h-16 mx-auto text-green-500" /> :
+                   result.status === 'already_used' ? <AlertTriangle className="w-16 h-16 mx-auto text-yellow-500" /> :
+                   <XCircle className="w-16 h-16 mx-auto text-red-500" />}
+                  <p className="font-display text-2xl font-bold text-white mt-2">
+                    {result.status === 'valid' ? '✓ VÁLIDO' : result.status === 'already_used' ? '⚠ YA CANJEADO' : '✗ INVÁLIDO'}
+                  </p>
+                </div>
+
+                {/* Detailed info */}
                 {result.ticket && (
-                  <div className="space-y-1">
-                    <p className="text-sm text-white/60">{result.ticket.tier_name}</p>
-                    {(result.ticket as any).quantity > 1 && (
-                      <p className="text-lg font-bold text-white">Cantidad: {(result.ticket as any).quantity} uds.</p>
+                  <div className="space-y-3 bg-black/20 rounded-2xl p-4">
+                    <div className="flex items-center gap-3">
+                      <User className="w-4 h-4 text-white/60 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-white/50 uppercase tracking-wider">Cliente</p>
+                        <p className="text-white font-semibold">{result.ticket.buyer_name}</p>
+                      </div>
+                    </div>
+                    {result.eventName && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-white/60 shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-white/50 uppercase tracking-wider">Bar</p>
+                          <p className="text-white font-medium">{result.eventName}</p>
+                        </div>
+                      </div>
                     )}
+                    <div className="flex items-center gap-3">
+                      <Package className="w-4 h-4 text-white/60 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-white/50 uppercase tracking-wider">Pack</p>
+                        <p className="text-white font-medium">{result.ticket.tier_name}</p>
+                      </div>
+                    </div>
+                    {qty > 1 && (
+                      <div className="flex items-center gap-3">
+                        <Hash className="w-4 h-4 text-white/60 shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-white/50 uppercase tracking-wider">Cantidad</p>
+                          <p className="text-white text-xl font-bold">{qty} unidades</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-white/60 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-white/50 uppercase tracking-wider">Precio</p>
+                        <p className="text-white font-bold text-lg">{result.ticket.price} €</p>
+                      </div>
+                    </div>
                   </div>
                 )}
-                <p className="text-sm text-white/70">{result.message}</p>
-                <Button variant="outline" onClick={() => setResult(null)} className="mt-2 rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20">Escanear otro</Button>
+
+                <p className="text-sm text-white/70 text-center">{result.message}</p>
+
+                <Button
+                  onClick={handleScanAnother}
+                  size="lg"
+                  className="w-full rounded-xl gap-2 bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                >
+                  <RotateCcw className="w-4 h-4" /> Escanear otro QR
+                </Button>
               </div>
             </motion.div>
           )}

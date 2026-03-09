@@ -24,7 +24,7 @@ const Index = () => {
         .from('events')
         .select('*, price_tiers(*)')
         .eq('city', 'Logroño')
-        .in('status', ['upcoming', 'active'])
+        .eq('status', 'active')
         .order('title', { ascending: true });
 
       if (!error && data) {
@@ -63,7 +63,6 @@ const Index = () => {
               Descubre los mejores bares de Logroño, compra packs de pinchos y vinos, y canjéalos con QR en segundos.
             </p>
 
-            {/* Quick stats */}
             <div className="flex justify-center gap-6 pt-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <UtensilsCrossed className="w-4 h-4 text-primary" />
@@ -130,6 +129,28 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Map section */}
+      <section className="pb-16">
+        <div className="container">
+          <div className="space-y-4">
+            <h2 className="font-display text-2xl font-bold tracking-tight flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary" /> Ubicación
+            </h2>
+            <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1466.6!2d-2.4467!3d42.4668!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5aa1f6a6c8e4a3%3A0x5a2c7e9b0d8e2a1!2sCalle%20San%20Juan%2C%20Logro%C3%B1o!5e0!3m2!1ses!2ses!4v1709900000000!5m2!1ses!2ses"
+                width="100%"
+                height="350"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Calle San Juan, Logroño"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
