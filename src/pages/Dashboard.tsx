@@ -604,7 +604,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button onClick={saveEvent} className="rounded-xl gap-2"><Save className="w-4 h-4" />{editingEventId ? 'Guardar Cambios' : 'Crear Evento'}</Button>
+                  <Button onClick={saveEvent} className="rounded-xl gap-2"><Save className="w-4 h-4" />{editingEventId ? 'Guardar Cambios' : 'Crear Bar'}</Button>
                   <Button variant="outline" onClick={resetEventForm} className="rounded-xl">Cancelar</Button>
                 </div>
               </motion.div>
