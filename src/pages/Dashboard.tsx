@@ -312,7 +312,7 @@ const Dashboard = () => {
     if (error) {
       toast.error(error.message.includes('duplicate') ? 'Ya asignado' : error.message);
     } else {
-      toast.success('Evento asignado');
+      toast.success('Bar asignado');
       fetchData();
     }
     setAssignUserId('');
