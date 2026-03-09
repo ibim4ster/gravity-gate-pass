@@ -906,7 +906,7 @@ const Dashboard = () => {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Evento</Label>
+                  <Label className="text-xs">Bar / Restaurante</Label>
                   <Select value={assignEventId} onValueChange={setAssignEventId}>
                     <SelectTrigger className="w-52"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
