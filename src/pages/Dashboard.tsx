@@ -76,6 +76,7 @@ const Dashboard = () => {
 
   const [attendeeSearch, setAttendeeSearch] = useState('');
   const [attendeeEventFilter, setAttendeeEventFilter] = useState<string>('all');
+  const [barSearch, setBarSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState({ display_name: '', email: '' });
