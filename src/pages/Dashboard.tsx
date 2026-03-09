@@ -288,6 +288,38 @@ const Dashboard = () => {
     else { toast.success('Usuario actualizado'); setEditingUser(null); fetchData(); }
   };
 
+  const deleteUser = async (userId: string) => {
+    if (!confirm('¿Eliminar este usuario permanentemente? Se borrarán todos sus datos.')) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+        body: { action: 'delete', userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Usuario eliminado');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar usuario');
+    }
+  };
+
+  const resetUserPassword = async () => {
+    if (!resetPasswordUserId || !newPasswordValue) return;
+    if (newPasswordValue.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+        body: { action: 'reset-password', userId: resetPasswordUserId, newPassword: newPasswordValue },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Contraseña restablecida');
+      setResetPasswordUserId(null);
+      setNewPasswordValue('');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al restablecer contraseña');
+    }
+  };
+
   const assignEvent = async () => {
     if (!assignUserId || !assignEventId) return;
     const { error } = await supabase.from('event_assignments').insert({ user_id: assignUserId, event_id: assignEventId });
