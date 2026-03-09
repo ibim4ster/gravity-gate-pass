@@ -443,7 +443,7 @@ const Dashboard = () => {
               <StatCard icon={DollarSign} label="Ingresos" value={`${totalRevenue.toFixed(0)}€`} sub="Total acumulado" trend="up" />
               <StatCard icon={Ticket} label="Tickets" value={`${filteredTicketsForOverview.length}`} sub={`${usedTickets} canjeados`} />
               <StatCard icon={Activity} label="Ocupación" value={`${totalSold}/${totalCapacity}`} sub={`${totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0}% vendido`} />
-              <StatCard icon={Calendar} label="Eventos" value={`${overviewEvents.length}`} sub={`${overviewEvents.filter(e => e.status === 'upcoming').length} activos`} />
+              <StatCard icon={Calendar} label="Bares" value={`${overviewEvents.length}`} sub={`${overviewEvents.filter(e => e.status === 'upcoming').length} activos`} />
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
