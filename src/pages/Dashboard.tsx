@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Tables } from '@/integrations/supabase/types';
@@ -8,7 +8,7 @@ import {
   Edit2, Save, X, ClipboardList, UserCog, Trash2, Shield, Link2, Eye,
   DollarSign, Activity, ChevronDown, ChevronUp, MapPin, Clock, Image,
   Filter, TrendingUp, CheckCircle2, XCircle, AlertTriangle,
-  ExternalLink, QrCode
+  ExternalLink, QrCode, Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
