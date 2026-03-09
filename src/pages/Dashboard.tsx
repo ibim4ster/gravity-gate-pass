@@ -953,8 +953,8 @@ const Dashboard = () => {
                   <tr className="text-muted-foreground text-left border-b border-border">
                     <th className="p-3 font-medium">Fecha</th>
                     <th className="p-3 font-medium">Asistente</th>
-                    <th className="p-3 font-medium">Evento</th>
-                    <th className="p-3 font-medium">Resultado</th>
+                     <th className="p-3 font-medium">Bar</th>
+                     <th className="p-3 font-medium">Resultado</th>
                     <th className="p-3 font-medium">Staff</th>
                   </tr>
                 </thead>
