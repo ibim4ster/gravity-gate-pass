@@ -55,6 +55,7 @@ export type Database = {
           id: string
           image_url: string | null
           lineup: string | null
+          maps_url: string | null
           min_age: number | null
           organizer_id: string | null
           status: string
@@ -75,6 +76,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           lineup?: string | null
+          maps_url?: string | null
           min_age?: number | null
           organizer_id?: string | null
           status?: string
@@ -95,6 +97,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           lineup?: string | null
+          maps_url?: string | null
           min_age?: number | null
           organizer_id?: string | null
           status?: string
