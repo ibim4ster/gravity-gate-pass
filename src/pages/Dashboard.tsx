@@ -62,6 +62,7 @@ const Dashboard = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'events' | 'attendees' | 'users' | 'logs'>('overview');
+  const [overviewSearch, setOverviewSearch] = useState('');
 
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
