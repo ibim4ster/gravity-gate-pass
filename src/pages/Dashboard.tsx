@@ -373,15 +373,21 @@ const Dashboard = () => {
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-                <SelectTrigger className="w-64"><SelectValue placeholder="Todos los bares" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los bares</SelectItem>
-                  {visibleEvents.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+                  <SelectTrigger className="w-64"><SelectValue placeholder="Todos los bares" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los bares</SelectItem>
+                    {visibleEvents.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar bares..." value={overviewSearch} onChange={e => setOverviewSearch(e.target.value)} className="pl-10" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
