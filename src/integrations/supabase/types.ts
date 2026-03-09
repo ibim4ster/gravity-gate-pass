@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_requests: {
+        Row: {
+          bar_name: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          bar_name?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          bar_name?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
       event_assignments: {
         Row: {
           created_at: string
@@ -243,6 +273,7 @@ export type Database = {
           purchased_at: string
           qr_code: string
           qr_signature: string
+          quantity: number
           scanned_by: string | null
           status: string
           tier_name: string
@@ -262,6 +293,7 @@ export type Database = {
           purchased_at?: string
           qr_code?: string
           qr_signature?: string
+          quantity?: number
           scanned_by?: string | null
           status?: string
           tier_name: string
@@ -281,6 +313,7 @@ export type Database = {
           purchased_at?: string
           qr_code?: string
           qr_signature?: string
+          quantity?: number
           scanned_by?: string | null
           status?: string
           tier_name?: string
