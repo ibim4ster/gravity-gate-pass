@@ -103,37 +103,89 @@ serve(async (req) => {
 
         const emailHtml = `
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f4f1ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <img src="${req.headers.get("origin")}/logo-sanjuan.png" alt="San Juan" style="height:60px;" />
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu entrada</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <div style="max-width:580px;margin:0 auto;padding:40px 20px;">
+    
+    <!-- Logo Header -->
+    <div style="text-align:center;margin-bottom:32px;">
+      <img src="${req.headers.get("origin")}/logo-sanjuan.png" alt="Calle San Juan · Logroño" style="height:48px;" />
     </div>
-    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-      <div style="background:linear-gradient(135deg,#c2956b,#a67c52);padding:28px 24px;text-align:center;">
-        <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px 0;">🎉 ¡Pack comprado con éxito!</h1>
-        <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0;">Tu entrada está lista</p>
+
+    <!-- Main Card -->
+    <div style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+      
+      <!-- Green Header -->
+      <div style="background:linear-gradient(135deg,#2d7a5a,#1d5c40);padding:40px 32px;text-align:center;">
+        <div style="width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:28px;">🎫</span>
+        </div>
+        <h1 style="color:#ffffff;font-size:24px;font-weight:700;margin:0 0 6px 0;letter-spacing:-0.3px;">Compra confirmada</h1>
+        <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0;font-weight:400;">Tu pack está listo para usar</p>
       </div>
-      <div style="padding:24px;">
-        <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 16px 0;">${event?.title || 'Ruta de Pinchos'}</h2>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;color:#444;">
-          <tr><td style="padding:6px 0;color:#888;">📍 Lugar</td><td style="padding:6px 0;text-align:right;font-weight:500;">${event?.venue || ''}, ${event?.city || 'Logroño'}</td></tr>
-          <tr><td style="padding:6px 0;color:#888;">📅 Fecha</td><td style="padding:6px 0;text-align:right;font-weight:500;">${eventDate}</td></tr>
-          <tr><td style="padding:6px 0;color:#888;">🕐 Horario</td><td style="padding:6px 0;text-align:right;font-weight:500;">${event?.time || ''}</td></tr>
-          <tr><td colspan="2" style="padding:8px 0;"><hr style="border:none;border-top:1px solid #eee;margin:0;" /></td></tr>
-          <tr><td style="padding:6px 0;color:#888;">🎫 Pack</td><td style="padding:6px 0;text-align:right;font-weight:600;">${meta.tier_name}</td></tr>
-          <tr><td style="padding:6px 0;color:#888;">💰 Precio</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#c2956b;">${meta.price}€</td></tr>
-          <tr><td style="padding:6px 0;color:#888;">👤 Nombre</td><td style="padding:6px 0;text-align:right;font-weight:500;">${meta.buyer_name}</td></tr>
-          <tr><td style="padding:6px 0;color:#888;">🔑 Código</td><td style="padding:6px 0;text-align:right;font-family:monospace;font-size:12px;color:#c2956b;">${ticket.qr_code}</td></tr>
+
+      <!-- Event Info -->
+      <div style="padding:32px;">
+        <h2 style="color:#1d1d1f;font-size:20px;font-weight:600;margin:0 0 24px 0;letter-spacing:-0.2px;">${event?.title || 'Ruta de Pinchos'}</h2>
+        
+        <div style="background:#f5f5f7;border-radius:12px;padding:20px;margin-bottom:24px;">
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:8px 0;color:#86868b;font-size:13px;font-weight:500;">Lugar</td>
+              <td style="padding:8px 0;text-align:right;color:#1d1d1f;font-size:13px;font-weight:500;">${event?.venue || ''}, ${event?.city || 'Logroño'}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;color:#86868b;font-size:13px;font-weight:500;">Fecha</td>
+              <td style="padding:8px 0;text-align:right;color:#1d1d1f;font-size:13px;font-weight:500;">${eventDate}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;color:#86868b;font-size:13px;font-weight:500;">Horario</td>
+              <td style="padding:8px 0;text-align:right;color:#1d1d1f;font-size:13px;font-weight:500;">${event?.time || ''}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Divider -->
+        <hr style="border:none;border-top:1px solid #e5e5e7;margin:0 0 24px 0;" />
+
+        <!-- Ticket Details -->
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Pack</td>
+            <td style="padding:10px 0;text-align:right;color:#1d1d1f;font-size:14px;font-weight:600;">${meta.tier_name}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Precio</td>
+            <td style="padding:10px 0;text-align:right;color:#2d7a5a;font-size:14px;font-weight:600;">${meta.price}€</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Nombre</td>
+            <td style="padding:10px 0;text-align:right;color:#1d1d1f;font-size:14px;font-weight:500;">${meta.buyer_name}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Código</td>
+            <td style="padding:10px 0;text-align:right;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:11px;color:#2d7a5a;letter-spacing:0.5px;">${ticket.qr_code}</td>
+          </tr>
         </table>
       </div>
-      <div style="padding:0 24px 28px;text-align:center;">
-        <a href="${ticketUrl}" style="display:inline-block;background:linear-gradient(135deg,#c2956b,#a67c52);color:#ffffff;padding:14px 40px;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px;">Ver mi ticket con QR</a>
-        <p style="color:#999;font-size:11px;margin:16px 0 0 0;">Presenta este QR en la entrada para acceder</p>
+
+      <!-- CTA Button -->
+      <div style="padding:0 32px 36px;text-align:center;">
+        <a href="${ticketUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#1d5c40);color:#ffffff;padding:16px 48px;border-radius:14px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.1px;box-shadow:0 4px 12px rgba(45,122,90,0.3);">Ver mi ticket</a>
+        <p style="color:#86868b;font-size:12px;margin:16px 0 0 0;font-weight:400;">Presenta el código QR en el establecimiento</p>
       </div>
     </div>
-    <p style="color:#aaa;font-size:11px;text-align:center;margin-top:20px;">Gravity · Ruta de Pinchos Calle San Juan · Logroño</p>
+
+    <!-- Footer -->
+    <div style="text-align:center;padding:24px 0;">
+      <p style="color:#86868b;font-size:11px;margin:0 0 4px 0;">Gravity · Ruta de Pinchos Calle San Juan · Logroño</p>
+      <p style="color:#aeaeb2;font-size:11px;margin:0;">Este email se ha enviado automáticamente tras tu compra</p>
+    </div>
   </div>
 </body>
 </html>`;

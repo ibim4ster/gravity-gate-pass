@@ -44,7 +44,7 @@ const TicketView = () => {
     pdf.rect(0, 0, w, h, 'F');
 
     // Header bar
-    pdf.setFillColor(194, 149, 107);
+    pdf.setFillColor(45, 122, 90);
     pdf.rect(0, 0, w, 36, 'F');
 
     // Logo - try to load
