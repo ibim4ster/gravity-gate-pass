@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
 import AppNav from "./components/AppNav";
+import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import EventDetail from "./pages/EventDetail";
 import Checkout from "./pages/Checkout";
@@ -15,6 +16,7 @@ import Scanner from "./pages/Scanner";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,9 +43,11 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/contacto" element={<Contact />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
+              <Footer />
             </div>
           </AuthProvider>
         </BrowserRouter>

@@ -13,18 +13,19 @@ serve(async (req) => {
   }
 
   try {
-    const { eventId, tierId, buyerName, buyerEmail, buyerPhone, buyerDni, buyerDob } = await req.json();
+    const { eventId, tierId, buyerName, buyerEmail, buyerPhone, buyerDni, buyerDob, quantity = 1 } = await req.json();
 
     if (!eventId || !tierId || !buyerName || !buyerEmail) {
       throw new Error("Missing required fields");
     }
+
+    const qty = Math.max(1, Math.min(10, parseInt(String(quantity)) || 1));
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
-    // Get user if authenticated
     let userId: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
@@ -33,7 +34,6 @@ serve(async (req) => {
       userId = data.user?.id ?? null;
     }
 
-    // Fetch tier info
     const { data: tier, error: tierError } = await supabaseClient
       .from("price_tiers")
       .select("*")
@@ -42,7 +42,11 @@ serve(async (req) => {
 
     if (tierError || !tier) throw new Error("Pack no encontrado");
 
-    // Fetch event info
+    // Check availability
+    if (tier.sold + qty > tier.max_quantity) {
+      throw new Error(`Solo quedan ${tier.max_quantity - tier.sold} disponibles`);
+    }
+
     const { data: event } = await supabaseClient
       .from("events")
       .select("title")
@@ -53,14 +57,12 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check for existing Stripe customer
     const customers = await stripe.customers.list({ email: buyerEmail, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
     }
 
-    // Create a Stripe Checkout session with the price embedded
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : buyerEmail,
@@ -74,7 +76,7 @@ serve(async (req) => {
             },
             unit_amount: Math.round(tier.price * 100),
           },
-          quantity: 1,
+          quantity: qty,
         },
       ],
       mode: "payment",
@@ -89,6 +91,7 @@ serve(async (req) => {
         buyer_user_id: userId || "",
         tier_name: tier.name,
         price: String(tier.price),
+        quantity: String(qty),
       },
       success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/checkout/${eventId}/${tierId}`,

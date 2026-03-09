@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, MapPin, Clock, CreditCard } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, MapPin, Clock, CreditCard, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Checkout = () => {
@@ -22,6 +22,7 @@ const Checkout = () => {
   const [phone, setPhone] = useState('');
   const [dni, setDni] = useState('');
   const [dob, setDob] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -48,6 +49,9 @@ const Checkout = () => {
   if (pageLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
   if (!event || !tier) return <div className="container py-20 text-center text-muted-foreground">Datos no válidos.</div>;
 
+  const maxAvailable = Math.min(tier.max_quantity - tier.sold, 10);
+  const totalPrice = (tier.price * quantity).toFixed(2);
+
   const handlePurchase = async () => {
     if (!name.trim() || !email.trim() || !phone.trim() || !dni.trim() || !dob) {
       toast.error('Completa todos los campos obligatorios');
@@ -65,6 +69,7 @@ const Checkout = () => {
           buyerPhone: phone.trim(),
           buyerDni: dni.trim().toUpperCase(),
           buyerDob: dob,
+          quantity,
         },
       });
 
@@ -72,10 +77,8 @@ const Checkout = () => {
       if (data?.error) throw new Error(data.error);
 
       if (data?.url) {
-        // Open in new tab to avoid iframe restrictions in preview
         const newWindow = window.open(data.url, '_blank');
         if (!newWindow) {
-          // Fallback if popup blocked
           window.location.href = data.url;
         }
         setLoading(false);
@@ -113,14 +116,43 @@ const Checkout = () => {
               <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-primary" />Horario: {event.time}</span>
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" />{event.venue}, {event.city}</span>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{tier.name}</span>
-                <span className="font-display text-2xl font-bold text-primary">{tier.price}€</span>
+                <span className="text-sm text-muted-foreground">{tier.price}€ / ud.</span>
               </div>
               {tier.description && (
                 <p className="text-xs text-muted-foreground">{tier.description}</p>
               )}
+              
+              {/* Quantity selector */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+                <span className="text-sm font-medium">Cantidad</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-display text-lg font-bold w-8 text-center">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => Math.min(maxAvailable, q + 1))}
+                    disabled={quantity >= maxAvailable}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <span className="font-medium">Total</span>
+                <span className="font-display text-2xl font-bold text-primary">{totalPrice}€</span>
+              </div>
             </div>
           </div>
 
@@ -158,7 +190,7 @@ const Checkout = () => {
             {loading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo a pago...</>
             ) : (
-              `Pagar ${tier.price}€`
+              `Pagar ${totalPrice}€${quantity > 1 ? ` (${quantity}x)` : ''}`
             )}
           </Button>
 
