@@ -112,6 +112,7 @@ export type Database = {
       price_tiers: {
         Row: {
           created_at: string
+          description: string | null
           event_id: string
           expires_at: string | null
           id: string
@@ -122,6 +123,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           event_id: string
           expires_at?: string | null
           id?: string
@@ -132,6 +134,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           event_id?: string
           expires_at?: string | null
           id?: string
