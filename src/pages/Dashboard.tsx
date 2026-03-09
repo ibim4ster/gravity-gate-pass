@@ -87,6 +87,8 @@ const Dashboard = () => {
   const [assignEventId, setAssignEventId] = useState('');
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
 
   const fetchData = async () => {
     if (isAdmin) {
