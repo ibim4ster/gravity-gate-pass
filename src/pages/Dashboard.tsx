@@ -705,14 +705,14 @@ const Dashboard = () => {
         {tab === 'attendees' && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">{filteredTickets.length} tickets</p>
+              <p className="text-sm text-muted-foreground">{filteredTickets.length} canjes</p>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Select value={attendeeEventFilter} onValueChange={setAttendeeEventFilter}>
                   <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Todos los eventos" />
+                    <SelectValue placeholder="Todos los bares" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los eventos</SelectItem>
+                    <SelectItem value="all">Todos los bares</SelectItem>
                     {visibleEvents.map(e => (
                       <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                     ))}
