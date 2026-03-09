@@ -49,7 +49,7 @@ const EventCard = ({ event, index }: EventCardProps) => {
             )}
             {almostSoldOut && (
               <div className="absolute top-3 right-3 z-20 px-3 py-1 rounded-lg bg-warning text-warning-foreground text-xs font-bold">
-                Últimas entradas
+                Últimos packs
               </div>
             )}
           </div>
