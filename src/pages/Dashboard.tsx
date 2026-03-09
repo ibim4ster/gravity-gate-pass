@@ -882,6 +882,27 @@ const Dashboard = () => {
               </Dialog>
             )}
 
+            {resetPasswordUserId && (
+              <Dialog open={!!resetPasswordUserId} onOpenChange={() => setResetPasswordUserId(null)}>
+                <DialogContent className="max-w-xs">
+                  <DialogHeader><DialogTitle>Restablecer contraseña</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Usuario: <strong>{users.find(u => u.user_id === resetPasswordUserId)?.display_name || users.find(u => u.user_id === resetPasswordUserId)?.email}</strong>
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Nueva contraseña</Label>
+                      <Input type="password" value={newPasswordValue} onChange={e => setNewPasswordValue(e.target.value)} placeholder="Mínimo 6 caracteres" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={resetUserPassword} className="rounded-xl gap-2" disabled={newPasswordValue.length < 6}><Save className="w-4 h-4" />Cambiar</Button>
+                      <Button variant="outline" onClick={() => setResetPasswordUserId(null)} className="rounded-xl">Cancelar</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
             {/* Bar assignments */}
             <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
               <h3 className="font-display font-semibold flex items-center gap-2"><Link2 className="w-5 h-5 text-primary" /> Asignación de bares/restaurantes</h3>
