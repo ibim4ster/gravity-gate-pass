@@ -72,7 +72,13 @@ const Checkout = () => {
       if (data?.error) throw new Error(data.error);
 
       if (data?.url) {
-        window.location.href = data.url;
+        // Open in new tab to avoid iframe restrictions in preview
+        const newWindow = window.open(data.url, '_blank');
+        if (!newWindow) {
+          // Fallback if popup blocked
+          window.location.href = data.url;
+        }
+        setLoading(false);
       } else {
         throw new Error('No se pudo crear la sesión de pago');
       }
