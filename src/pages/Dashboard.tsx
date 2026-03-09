@@ -890,9 +890,9 @@ const Dashboard = () => {
             <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
               <h3 className="font-display font-semibold flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-primary" />
-                Asignación de eventos
-              </h3>
-              <p className="text-sm text-muted-foreground">Asigna staff u organizadores a eventos para limitar su visibilidad.</p>
+                 Asignación de bares/restaurantes
+               </h3>
+               <p className="text-sm text-muted-foreground">Asigna staff u organizadores a bares para limitar su visibilidad.</p>
               <div className="flex flex-wrap gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs">Usuario (Staff/Admin)</Label>
