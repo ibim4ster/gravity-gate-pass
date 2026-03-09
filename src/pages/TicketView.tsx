@@ -4,12 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, ArrowLeft, Loader2, Download, Share2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, ArrowLeft, Loader2, Download, Share2, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '@/hooks/useTheme';
-import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const TicketView = () => {
   const { ticketId } = useParams();
@@ -17,7 +17,7 @@ const TicketView = () => {
   const [ticket, setTicket] = useState<any>(null);
   const [event, setEvent] = useState<Tables<'events'> | null>(null);
   const [loading, setLoading] = useState(true);
-  const ticketRef = useRef<HTMLDivElement>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -32,20 +32,162 @@ const TicketView = () => {
     if (ticketId) fetchTicket();
   }, [ticketId]);
 
-  const handleDownload = async () => {
-    if (!ticketRef.current) return;
+  const handleDownloadPDF = async () => {
+    if (!ticket || !qrRef.current) return;
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+    const w = pdf.internal.pageSize.getWidth();
+    const h = pdf.internal.pageSize.getHeight();
+
+    // Background
+    pdf.setFillColor(244, 241, 236);
+    pdf.rect(0, 0, w, h, 'F');
+
+    // Header bar
+    pdf.setFillColor(194, 149, 107);
+    pdf.rect(0, 0, w, 36, 'F');
+
+    // Logo - try to load
     try {
-      const canvas = await html2canvas(ticketRef.current, {
-        backgroundColor: resolvedTheme === 'dark' ? '#0c1222' : '#ffffff',
-        scale: 2,
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        logoImg.onload = () => resolve();
+        logoImg.onerror = () => reject();
+        logoImg.src = '/logo-sanjuan.png';
       });
-      const link = document.createElement('a');
-      link.download = `gravity-ticket-${ticket.qr_code}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const canvas = document.createElement('canvas');
+      canvas.width = logoImg.naturalWidth;
+      canvas.height = logoImg.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(logoImg, 0, 0);
+      const logoData = canvas.toDataURL('image/png');
+      pdf.addImage(logoData, 'PNG', w / 2 - 12, 6, 24, 24);
     } catch {
-      window.print();
+      // No logo, show text
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('GRAVITY', w / 2, 22, { align: 'center' });
     }
+
+    // Title section
+    let y = 44;
+    pdf.setTextColor(26, 26, 46);
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(event?.title || 'Ruta de Pinchos', w / 2, y, { align: 'center' });
+    y += 8;
+
+    // Event details
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(120, 120, 120);
+    if (event) {
+      const dateStr = format(new Date(event.date), "d 'de' MMMM yyyy", { locale: es });
+      pdf.text(`📅 ${dateStr}  ·  🕐 ${event.time}h`, w / 2, y, { align: 'center' });
+      y += 5;
+      pdf.text(`📍 ${event.venue}, ${event.city}`, w / 2, y, { align: 'center' });
+      y += 8;
+    }
+
+    // Divider
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setLineDashPattern([2, 2], 0);
+    pdf.line(16, y, w - 16, y);
+    y += 8;
+
+    // Ticket details grid
+    pdf.setLineDashPattern([], 0);
+    const details = [
+      ['Pack', ticket.tier_name],
+      ['Precio', `${ticket.price}€`],
+      ['Nombre', ticket.buyer_name],
+      ['Email', ticket.buyer_email],
+    ];
+    if (ticket.buyer_dni) details.push(['DNI', ticket.buyer_dni]);
+    if (ticket.buyer_phone) details.push(['Teléfono', ticket.buyer_phone]);
+
+    for (const [label, value] of details) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(160, 160, 160);
+      pdf.text(label, 18, y);
+      pdf.setFontSize(10);
+      pdf.setTextColor(50, 50, 50);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(String(value), w - 18, y, { align: 'right' });
+      pdf.setFont('helvetica', 'normal');
+      y += 7;
+    }
+
+    y += 4;
+
+    // Divider
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setLineDashPattern([2, 2], 0);
+    pdf.line(16, y, w - 16, y);
+    pdf.setLineDashPattern([], 0);
+    y += 6;
+
+    // QR Code
+    const svgEl = qrRef.current.querySelector('svg');
+    if (svgEl) {
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      await new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 400, 400);
+      ctx.drawImage(img, 0, 0, 400, 400);
+      const qrData = canvas.toDataURL('image/png');
+      const qrSize = 44;
+      pdf.addImage(qrData, 'PNG', w / 2 - qrSize / 2, y, qrSize, qrSize);
+      URL.revokeObjectURL(url);
+      y += qrSize + 5;
+    }
+
+    // QR code text
+    pdf.setFontSize(7);
+    pdf.setTextColor(160, 160, 160);
+    pdf.setFont('courier', 'normal');
+    pdf.text(ticket.qr_code, w / 2, y, { align: 'center' });
+    y += 6;
+
+    // Status badge
+    const statusText = ticket.status === 'valid' ? 'VÁLIDO' : ticket.status === 'used' ? 'USADO' : 'CANCELADO';
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    if (ticket.status === 'valid') {
+      pdf.setTextColor(34, 139, 34);
+    } else {
+      pdf.setTextColor(160, 160, 160);
+    }
+    pdf.text(statusText, w / 2, y, { align: 'center' });
+
+    // Footer
+    pdf.setFontSize(7);
+    pdf.setTextColor(180, 180, 180);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Gravity · Ruta de Pinchos Calle San Juan · Logroño', w / 2, h - 8, { align: 'center' });
+
+    pdf.save(`gravity-ticket-${ticket.qr_code}.pdf`);
+  };
+
+  const handleAddToCalendar = () => {
+    if (!event) return;
+    const startDate = new Date(`${event.date}T${event.time.replace('h', ':00')}`);
+    const endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const calUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${fmt(startDate)}/${fmt(endDate)}&location=${encodeURIComponent(`${event.venue}, ${event.city}`)}&details=${encodeURIComponent(`Pack: ${ticket.tier_name}\nCódigo: ${ticket.qr_code}\nVer ticket: ${window.location.href}`)}`;
+    window.open(calUrl, '_blank');
   };
 
   const handleShare = async () => {
@@ -57,7 +199,6 @@ const TicketView = () => {
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      // Simple feedback
     }
   };
 
@@ -77,24 +218,26 @@ const TicketView = () => {
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-2 rounded-xl">
               <Share2 className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2 rounded-xl">
-              <Download className="w-4 h-4" /> Descargar
+            <Button variant="outline" size="sm" onClick={handleAddToCalendar} className="gap-2 rounded-xl" title="Añadir al calendario">
+              <CalendarPlus className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2 rounded-xl">
+              <Download className="w-4 h-4" /> PDF
             </Button>
           </div>
         </div>
 
-        <div ref={ticketRef} className="relative overflow-hidden rounded-2xl glass-card">
+        <div className="relative overflow-hidden rounded-2xl glass-card">
           {/* Watermark */}
           <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
             <span className="font-display text-[8rem] font-bold tracking-widest rotate-[-30deg]">GRAVITY</span>
           </div>
 
           <div className="p-6 space-y-4 relative z-10">
+            {/* Logo */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="font-display font-bold text-primary-foreground text-xs">G</span>
-                </div>
+                <img src="/logo-sanjuan.png" alt="San Juan" className="w-8 h-8 rounded-lg object-contain" />
                 <span className="font-display text-xs font-semibold text-muted-foreground tracking-wider uppercase">Gravity Ticket</span>
               </div>
               <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
@@ -140,7 +283,7 @@ const TicketView = () => {
           </div>
 
           <div className="p-6 flex flex-col items-center gap-4 relative z-10">
-            <div className="p-4 rounded-2xl bg-white animate-float">
+            <div ref={qrRef} className="p-4 rounded-2xl bg-white animate-float">
               <QRCodeSVG value={qrValue} size={180} level="H" fgColor="#0c1222" bgColor="#ffffff" />
             </div>
             <p className="text-[10px] text-muted-foreground font-mono tracking-wider">{ticket.qr_code}</p>

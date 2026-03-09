@@ -31,7 +31,6 @@ serve(async (req) => {
 
     const meta = session.metadata!;
 
-    // Use service role to create ticket
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -47,9 +46,7 @@ serve(async (req) => {
       .order("purchased_at", { ascending: false })
       .limit(1);
 
-    // Simple dedup: check metadata
     if (existing && existing.length > 0) {
-      // Could be a duplicate call - return existing ticket
       return new Response(JSON.stringify({ ticketId: existing[0].id, alreadyExists: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -90,45 +87,78 @@ serve(async (req) => {
         .eq("id", meta.tier_id);
     }
 
-    // Send email with ticket
-    try {
-      const { data: event } = await supabaseAdmin
-        .from("events")
-        .select("title, venue, city, time")
-        .eq("id", meta.event_id)
-        .single();
+    // Fetch event details for email
+    const { data: event } = await supabaseAdmin
+      .from("events")
+      .select("title, venue, city, time, date")
+      .eq("id", meta.event_id)
+      .single();
 
-      const ticketUrl = `${req.headers.get("origin")}/ticket/${ticket.id}`;
+    // Send email via Resend
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (resendApiKey) {
+      try {
+        const ticketUrl = `${req.headers.get("origin")}/ticket/${ticket.id}`;
+        const eventDate = event?.date ? new Date(event.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
-      // Use Lovable AI to send email via edge function
-      const emailHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; padding: 20px 0;">
-            <h1 style="color: #1a1a2e; font-size: 24px; margin: 0;">🎉 ¡Pack comprado!</h1>
-          </div>
-          <div style="background: #f8f9fa; border-radius: 12px; padding: 24px; margin: 20px 0;">
-            <h2 style="color: #1a1a2e; margin: 0 0 8px 0;">${event?.title || 'Gravity'}</h2>
-            <p style="color: #666; margin: 4px 0;">📍 ${event?.venue || 'Calle San Juan'}, ${event?.city || 'Logroño'}</p>
-            <p style="color: #666; margin: 4px 0;">🕐 Horario: ${event?.time || ''}</p>
-            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 16px 0;" />
-            <p style="margin: 4px 0;"><strong>Pack:</strong> ${meta.tier_name}</p>
-            <p style="margin: 4px 0;"><strong>Precio:</strong> ${meta.price}€</p>
-            <p style="margin: 4px 0;"><strong>Nombre:</strong> ${meta.buyer_name}</p>
-            <p style="margin: 4px 0;"><strong>Código:</strong> ${ticket.qr_code}</p>
-          </div>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${ticketUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600;">Ver mi ticket con QR</a>
-          </div>
-          <p style="color: #999; font-size: 12px; text-align: center;">Gravity · Ruta de Pinchos Calle San Juan · Logroño</p>
-        </div>
-      `;
+        const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f4f1ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="${req.headers.get("origin")}/logo-sanjuan.png" alt="San Juan" style="height:60px;" />
+    </div>
+    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#c2956b,#a67c52);padding:28px 24px;text-align:center;">
+        <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px 0;">🎉 ¡Pack comprado con éxito!</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0;">Tu entrada está lista</p>
+      </div>
+      <div style="padding:24px;">
+        <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 16px 0;">${event?.title || 'Ruta de Pinchos'}</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;color:#444;">
+          <tr><td style="padding:6px 0;color:#888;">📍 Lugar</td><td style="padding:6px 0;text-align:right;font-weight:500;">${event?.venue || ''}, ${event?.city || 'Logroño'}</td></tr>
+          <tr><td style="padding:6px 0;color:#888;">📅 Fecha</td><td style="padding:6px 0;text-align:right;font-weight:500;">${eventDate}</td></tr>
+          <tr><td style="padding:6px 0;color:#888;">🕐 Horario</td><td style="padding:6px 0;text-align:right;font-weight:500;">${event?.time || ''}</td></tr>
+          <tr><td colspan="2" style="padding:8px 0;"><hr style="border:none;border-top:1px solid #eee;margin:0;" /></td></tr>
+          <tr><td style="padding:6px 0;color:#888;">🎫 Pack</td><td style="padding:6px 0;text-align:right;font-weight:600;">${meta.tier_name}</td></tr>
+          <tr><td style="padding:6px 0;color:#888;">💰 Precio</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#c2956b;">${meta.price}€</td></tr>
+          <tr><td style="padding:6px 0;color:#888;">👤 Nombre</td><td style="padding:6px 0;text-align:right;font-weight:500;">${meta.buyer_name}</td></tr>
+          <tr><td style="padding:6px 0;color:#888;">🔑 Código</td><td style="padding:6px 0;text-align:right;font-family:monospace;font-size:12px;color:#c2956b;">${ticket.qr_code}</td></tr>
+        </table>
+      </div>
+      <div style="padding:0 24px 28px;text-align:center;">
+        <a href="${ticketUrl}" style="display:inline-block;background:linear-gradient(135deg,#c2956b,#a67c52);color:#ffffff;padding:14px 40px;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px;">Ver mi ticket con QR</a>
+        <p style="color:#999;font-size:11px;margin:16px 0 0 0;">Presenta este QR en la entrada para acceder</p>
+      </div>
+    </div>
+    <p style="color:#aaa;font-size:11px;text-align:center;margin-top:20px;">Gravity · Ruta de Pinchos Calle San Juan · Logroño</p>
+  </div>
+</body>
+</html>`;
 
-      // Send via Resend or similar - for now we'll use a simple fetch to a transactional email service
-      // This will be enhanced later
-      console.log("Email would be sent to:", meta.buyer_email, "with ticket:", ticket.qr_code);
-    } catch (emailErr) {
-      console.error("Email sending failed:", emailErr);
-      // Don't fail the payment verification if email fails
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Gravity <onboarding@resend.dev>",
+            to: [meta.buyer_email],
+            subject: `🎫 Tu pack "${meta.tier_name}" — ${event?.title || 'Gravity'}`,
+            html: emailHtml,
+          }),
+        });
+
+        const resendData = await resendRes.json();
+        console.log("Email sent:", resendData);
+      } catch (emailErr) {
+        console.error("Email sending failed:", emailErr);
+      }
+    } else {
+      console.warn("RESEND_API_KEY not configured, skipping email");
     }
 
     return new Response(JSON.stringify({ ticketId: ticket.id }), {
