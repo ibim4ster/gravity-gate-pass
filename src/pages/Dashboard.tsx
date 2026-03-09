@@ -349,8 +349,8 @@ const Dashboard = () => {
 
   const adminTabs = [
     { key: 'overview' as const, label: 'Resumen', icon: BarChart3 },
-    { key: 'events' as const, label: 'Eventos', icon: Calendar },
-    { key: 'attendees' as const, label: 'Asistentes', icon: Ticket },
+    { key: 'events' as const, label: 'Bares', icon: Calendar },
+    { key: 'attendees' as const, label: 'Canjes', icon: Ticket },
     { key: 'users' as const, label: 'Usuarios', icon: UserCog },
     { key: 'logs' as const, label: 'Auditoría', icon: ClipboardList },
   ];
