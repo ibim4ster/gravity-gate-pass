@@ -804,10 +804,18 @@ const Dashboard = () => {
                           <p className="text-xs text-muted-foreground">{u.email || '—'}</p>
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => {
-                        setEditingUser(u);
-                        setEditUserForm({ display_name: u.display_name || '', email: u.email || '' });
-                      }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => {
+                          setEditingUser(u);
+                          setEditUserForm({ display_name: u.display_name || '', email: u.email || '' });
+                        }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setResetPasswordUserId(u.user_id); setNewPasswordValue(''); }} title="Resetear contraseña">
+                          <Shield className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => deleteUser(u.user_id)} title="Eliminar usuario">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Registrado: {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}</p>
