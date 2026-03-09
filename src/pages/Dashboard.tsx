@@ -734,7 +734,7 @@ const Dashboard = () => {
                       <th className="p-3 font-medium">Email</th>
                       <th className="p-3 font-medium">Teléfono</th>
                       <th className="p-3 font-medium">DNI</th>
-                      <th className="p-3 font-medium">Evento</th>
+                      <th className="p-3 font-medium">Bar</th>
                       <th className="p-3 font-medium">Tipo</th>
                       <th className="p-3 font-medium text-right">Precio</th>
                       <th className="p-3 font-medium">Estado</th>
