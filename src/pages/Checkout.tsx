@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, Calendar, MapPin, Clock, CreditCard } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, MapPin, Clock, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 const Checkout = () => {
   const { eventId, tierId } = useParams();
@@ -18,7 +16,7 @@ const Checkout = () => {
   const { user, profile } = useAuth();
 
   const [event, setEvent] = useState<Tables<'events'> | null>(null);
-  const [tier, setTier] = useState<Tables<'price_tiers'> | null>(null);
+  const [tier, setTier] = useState<any>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -58,36 +56,29 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const { data: ticket, error } = await supabase
-        .from('tickets')
-        .insert({
-          event_id: event.id,
-          price_tier_id: tier.id,
-          buyer_name: name.trim(),
-          buyer_email: email.trim().toLowerCase(),
-          buyer_user_id: user?.id || null,
-          tier_name: tier.name,
-          price: tier.price,
-          buyer_phone: phone.trim(),
-          buyer_dni: dni.trim().toUpperCase(),
-          buyer_dob: dob,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          eventId: event.id,
+          tierId: tier.id,
+          buyerName: name.trim(),
+          buyerEmail: email.trim().toLowerCase(),
+          buyerPhone: phone.trim(),
+          buyerDni: dni.trim().toUpperCase(),
+          buyerDob: dob,
+        },
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
 
-      await supabase
-        .from('price_tiers')
-        .update({ sold: tier.sold + 1 })
-        .eq('id', tier.id);
-
-      toast.success('¡Pack comprado con éxito!');
-      navigate(`/ticket/${ticket.id}`);
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No se pudo crear la sesión de pago');
+      }
     } catch (err: any) {
-      console.error('Purchase error:', err);
-      toast.error(err.message || 'Error al comprar');
-    } finally {
+      console.error('Payment error:', err);
+      toast.error(err.message || 'Error al procesar el pago');
       setLoading(false);
     }
   };
@@ -113,13 +104,17 @@ const Checkout = () => {
           <div className="p-4 rounded-xl bg-muted border border-border space-y-3">
             <p className="font-display font-semibold text-foreground">{event.title}</p>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-primary" />{format(new Date(event.date), "d MMM yyyy", { locale: es })}</span>
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-primary" />{event.time}h</span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-primary" />Horario: {event.time}</span>
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" />{event.venue}, {event.city}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{tier.name}</span>
-              <span className="font-display text-2xl font-bold text-primary">{tier.price}€</span>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{tier.name}</span>
+                <span className="font-display text-2xl font-bold text-primary">{tier.price}€</span>
+              </div>
+              {tier.description && (
+                <p className="text-xs text-muted-foreground">{tier.description}</p>
+              )}
             </div>
           </div>
 
@@ -155,7 +150,7 @@ const Checkout = () => {
             className="w-full font-display font-semibold rounded-xl shadow-lg shadow-primary/20"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo a pago...</>
             ) : (
               `Pagar ${tier.price}€`
             )}
@@ -163,7 +158,7 @@ const Checkout = () => {
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="w-3.5 h-3.5 text-success" />
-            Compra segura y cifrada
+            Pago seguro con Stripe
           </div>
         </div>
       </motion.div>

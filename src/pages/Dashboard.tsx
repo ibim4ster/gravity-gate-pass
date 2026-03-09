@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Tables } from '@/integrations/supabase/types';
@@ -8,7 +8,7 @@ import {
   Edit2, Save, X, ClipboardList, UserCog, Trash2, Shield, Link2, Eye,
   DollarSign, Activity, ChevronDown, ChevronUp, MapPin, Clock, Image,
   Filter, TrendingUp, CheckCircle2, XCircle, AlertTriangle,
-  ExternalLink, QrCode
+  ExternalLink, QrCode, Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,11 +71,13 @@ const Dashboard = () => {
     category: 'Bar/Restaurante', capacity: '500', status: 'active',
     image_url: '', maps_url: '', lineup: '', min_age: '0',
     gallery_urls: '',
-    tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '' }],
+    tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
   });
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [attendeeSearch, setAttendeeSearch] = useState('');
   const [attendeeEventFilter, setAttendeeEventFilter] = useState<string>('all');
+  const [barSearch, setBarSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState({ display_name: '', email: '' });
@@ -153,7 +155,7 @@ const Dashboard = () => {
       title: '', description: '', date: '', time: '', venue: '', city: 'Logroño',
       category: 'Bar/Restaurante', capacity: '500', status: 'active',
       image_url: '', maps_url: '', lineup: '', min_age: '0', gallery_urls: '',
-      tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '' }],
+      tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
     });
     setEditingEventId(null);
     setShowCreateEvent(false);
@@ -181,6 +183,7 @@ const Dashboard = () => {
         id: t.id, name: t.name, price: String(t.price),
         maxQuantity: String(t.max_quantity),
         expiresAt: t.expires_at ? t.expires_at.slice(0, 16) : '',
+        description: (t as any).description || '',
       })),
     });
     setTab('events');
@@ -221,7 +224,8 @@ const Dashboard = () => {
         const tierData = {
           event_id: eventId!, name: tier.name, price: parseFloat(tier.price),
           max_quantity: parseInt(tier.maxQuantity), expires_at: tier.expiresAt || null,
-        };
+          description: tier.description || null,
+        } as any;
         if (tier.id) {
           await supabase.from('price_tiers').update(tierData).eq('id', tier.id);
         } else {
@@ -446,8 +450,11 @@ const Dashboard = () => {
         {/* EVENTS - Admin only */}
         {tab === 'events' && isAdmin && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{events.length} bares</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar bares..." value={barSearch} onChange={e => setBarSearch(e.target.value)} className="pl-10" />
+              </div>
               <Button onClick={() => { resetEventForm(); setShowCreateEvent(true); }} className="rounded-xl gap-2">
                 <Plus className="w-4 h-4" /> Nuevo Bar
               </Button>
@@ -483,8 +490,28 @@ const Dashboard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5"><Image className="w-3.5 h-3.5" /> URL Imagen del bar</Label>
-                    <Input value={eventForm.image_url} onChange={e => setEventForm({ ...eventForm, image_url: e.target.value })} placeholder="https://..." />
+                    <Label className="flex items-center gap-1.5"><Image className="w-3.5 h-3.5" /> Imagen del bar</Label>
+                    <Input value={eventForm.image_url} onChange={e => setEventForm({ ...eventForm, image_url: e.target.value })} placeholder="https://... o sube una imagen" />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split('.').pop();
+                        const path = `bars/${Date.now()}.${ext}`;
+                        const { error } = await supabase.storage.from('bar-images').upload(path, file);
+                        if (error) { toast.error('Error subiendo imagen'); return; }
+                        const { data: { publicUrl } } = supabase.storage.from('bar-images').getPublicUrl(path);
+                        setEventForm(prev => ({ ...prev, image_url: publicUrl }));
+                        toast.success('Imagen subida');
+                      }}
+                    />
+                    <Button type="button" variant="outline" size="sm" className="rounded-xl gap-2" onClick={() => imageInputRef.current?.click()}>
+                      <Upload className="w-3.5 h-3.5" /> Subir imagen
+                    </Button>
                     {eventForm.image_url && (
                       <div className="mt-2 h-24 rounded-lg overflow-hidden border border-border">
                         <img src={eventForm.image_url} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
@@ -510,15 +537,18 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   <h4 className="font-display font-medium text-sm">Packs de pinchos / vinos</h4>
                   {eventForm.tiers.map((tier, i) => (
-                    <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end p-3 rounded-xl bg-muted">
-                      <div><Label className="text-xs">Nombre</Label><Input value={tier.name} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], name: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Precio (€)</Label><Input type="number" value={tier.price} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], price: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Cantidad</Label><Input type="number" value={tier.maxQuantity} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], maxQuantity: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Expira</Label><Input type="datetime-local" value={tier.expiresAt} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], expiresAt: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <Button variant="ghost" size="sm" onClick={() => tier.id ? deleteTier(tier.id) : setEventForm({ ...eventForm, tiers: eventForm.tiers.filter((_, j) => j !== i) })} className="text-destructive self-end"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <div key={i} className="p-3 rounded-xl bg-muted space-y-2">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+                        <div><Label className="text-xs">Nombre</Label><Input value={tier.name} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], name: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Precio (€)</Label><Input type="number" value={tier.price} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], price: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Cantidad</Label><Input type="number" value={tier.maxQuantity} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], maxQuantity: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Expira</Label><Input type="datetime-local" value={tier.expiresAt} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], expiresAt: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <Button variant="ghost" size="sm" onClick={() => tier.id ? deleteTier(tier.id) : setEventForm({ ...eventForm, tiers: eventForm.tiers.filter((_, j) => j !== i) })} className="text-destructive self-end"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                      <div><Label className="text-xs">Descripción del pack</Label><Input value={tier.description} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], description: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} placeholder="Ej: Incluye pincho + caña" /></div>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEventForm({ ...eventForm, tiers: [...eventForm.tiers, { id: '', name: '', price: '0', maxQuantity: '50', expiresAt: '' }] })}>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEventForm({ ...eventForm, tiers: [...eventForm.tiers, { id: '', name: '', price: '0', maxQuantity: '50', expiresAt: '', description: '' }] })}>
                     + Añadir pack
                   </Button>
                 </div>
@@ -532,7 +562,7 @@ const Dashboard = () => {
 
             {/* Event list */}
             <div className="space-y-3">
-              {events.map(event => {
+              {events.filter(e => !barSearch || e.title.toLowerCase().includes(barSearch.toLowerCase()) || e.venue.toLowerCase().includes(barSearch.toLowerCase())).map(event => {
                 const sold = event.price_tiers.reduce((s, t) => s + t.sold, 0);
                 const revenue = tickets.filter(t => t.event_id === event.id).reduce((s, t) => s + Number(t.price), 0);
                 const isExpanded = expandedEvent === event.id;
