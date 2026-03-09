@@ -147,9 +147,8 @@ const Dashboard = () => {
   if (!user || (!isAdmin && !isStaff)) return <Navigate to="/" replace />;
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
 
-  const visibleEvents = isStaff && !isAdmin
-    ? events.filter(e => assignments.some(a => a.event_id === e.id))
-    : events;
+  // For staff, events are already filtered by assignment in fetchData
+  const visibleEvents = events;
 
   const filteredTicketsForOverview = selectedEventFilter === 'all'
     ? tickets : tickets.filter(t => t.event_id === selectedEventFilter);
