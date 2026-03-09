@@ -3,13 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import EventCard from '@/components/EventCard';
 import { motion } from 'framer-motion';
-import { Search, Loader2, Sparkles } from 'lucide-react';
+import { Search, Loader2, MapPin, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 type Event = Tables<'events'>;
 type PriceTier = Tables<'price_tiers'>;
 type EventWithTiers = Event & { price_tiers: PriceTier[] };
 
 const Index = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<EventWithTiers[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -33,27 +37,31 @@ const Index = () => {
 
   const filtered = events.filter((e) =>
     [e.title, e.city, e.category, e.venue].some((field) =>
-      field.toLowerCase().includes(search.toLowerCase())
+      field?.toLowerCase().includes(search.toLowerCase())
     )
   );
 
   return (
     <div className="min-h-screen">
-      <section className="py-12 md:py-16">
-        <div className="container">
+      {/* Hero section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
+        <div className="container py-12 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto text-center space-y-6 mb-10"
+            className="max-w-2xl mx-auto text-center space-y-5"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Sparkles className="w-3.5 h-3.5" />
-              Ruta San Juan · Logroño
+            <div className="flex justify-center">
+              <img src="/logo-sanjuan.png" alt="La Calle San Juan · Logroño" className="h-20 md:h-28 object-contain" />
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-              Bares y packs de pinchos
+            <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight leading-tight">
+              Ruta de pinchos <span className="text-primary">Calle San Juan</span>
             </h1>
+            <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
+              Descubre los mejores bares, compra packs de pinchos y vinos, y canjéalos con QR en segundos.
+            </p>
+
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -64,7 +72,27 @@ const Index = () => {
                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
               />
             </div>
+
+            {!user && (
+              <div className="flex justify-center pt-2">
+                <Link to="/auth">
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                    Crear cuenta para guardar tus packs <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              </div>
+            )}
           </motion.div>
+        </div>
+      </section>
+
+      {/* Bars grid */}
+      <section className="pb-16">
+        <div className="container">
+          <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span>{filtered.length} establecimientos en Calle San Juan</span>
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-20">
@@ -80,13 +108,21 @@ const Index = () => {
           {!loading && filtered.length === 0 && (
             <div className="text-center py-20 space-y-3">
               <p className="text-muted-foreground">No se encontraron bares.</p>
-              {events.length === 0 && (
-                <p className="text-sm text-muted-foreground">Añade locales desde el panel de administración.</p>
-              )}
             </div>
           )}
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img src="/logo-sanjuan.png" alt="San Juan" className="h-8 object-contain" />
+            <span className="font-display font-semibold text-sm">Gravity</span>
+          </div>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Gravity · Ruta San Juan · Logroño</p>
+        </div>
+      </footer>
     </div>
   );
 };
