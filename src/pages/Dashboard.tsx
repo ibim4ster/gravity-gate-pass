@@ -158,7 +158,8 @@ const Dashboard = () => {
 
   const totalRevenue = filteredTicketsForOverview.reduce((s, t) => s + Number(t.price), 0);
   const usedTickets = filteredTicketsForOverview.filter((t) => t.status === 'used').length;
-  const overviewEvents = selectedEventFilter === 'all' ? visibleEvents : visibleEvents.filter(e => e.id === selectedEventFilter);
+  const overviewEvents = (selectedEventFilter === 'all' ? visibleEvents : visibleEvents.filter(e => e.id === selectedEventFilter))
+    .filter(e => !overviewSearch || e.title.toLowerCase().includes(overviewSearch.toLowerCase()) || e.venue.toLowerCase().includes(overviewSearch.toLowerCase()));
 
   const eventForm_status_default = 'cerrado';
   const resetEventForm = () => {
