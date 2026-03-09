@@ -155,7 +155,7 @@ const Dashboard = () => {
       title: '', description: '', date: '', time: '', venue: '', city: 'Logroño',
       category: 'Bar/Restaurante', capacity: '500', status: 'active',
       image_url: '', maps_url: '', lineup: '', min_age: '0', gallery_urls: '',
-      tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '' }],
+      tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
     });
     setEditingEventId(null);
     setShowCreateEvent(false);
