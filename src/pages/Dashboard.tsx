@@ -450,7 +450,7 @@ const Dashboard = () => {
               <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
                 <h3 className="font-display font-semibold flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  Ventas por evento
+                   Ventas por bar
                 </h3>
                 {overviewEvents.map((event) => {
                   const sold = event.price_tiers.reduce((s, t) => s + t.sold, 0);
