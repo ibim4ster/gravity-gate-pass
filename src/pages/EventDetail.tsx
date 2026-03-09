@@ -2,11 +2,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
-import { MapPin, ArrowLeft, Tag, Loader2, Image, ExternalLink, Clock } from 'lucide-react';
+import { MapPin, ArrowLeft, Tag, Loader2, Image, ExternalLink, Clock, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
-type PriceTier = Tables<'price_tiers'>;
+type PriceTier = Tables<'price_tiers'> & { description?: string | null };
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -115,7 +115,7 @@ const EventDetail = () => {
                       key={tier.id}
                       disabled={unavailable}
                       onClick={() => setSelectedTier(tier.id)}
-                      className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                      className={`text-left p-4 rounded-xl border-2 transition-all ${
                         selectedTier === tier.id
                           ? 'border-primary bg-primary/5'
                           : unavailable
@@ -123,16 +123,24 @@ const EventDetail = () => {
                           : 'border-border hover:border-primary/40'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Tag className="w-4 h-4 text-primary" />
-                        <div className="text-left">
-                          <p className="font-medium text-foreground">{tier.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {soldOut ? 'Agotado' : expired ? 'Expirado' : `${tier.max_quantity - tier.sold} disponibles`}
-                          </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Tag className="w-4 h-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-foreground">{tier.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {soldOut ? 'Agotado' : expired ? 'Expirado' : `${tier.max_quantity - tier.sold} disponibles`}
+                            </p>
+                          </div>
                         </div>
+                        <span className="font-display font-bold text-xl text-primary">{tier.price}€</span>
                       </div>
-                      <span className="font-display font-bold text-xl text-primary">{tier.price}€</span>
+                      {(tier as any).description && (
+                        <div className="mt-2 ml-7 flex items-start gap-1.5">
+                          <Info className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                          <p className="text-xs text-muted-foreground">{(tier as any).description}</p>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
