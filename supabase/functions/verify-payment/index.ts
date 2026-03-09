@@ -207,7 +207,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Gravity <onboarding@resend.dev>",
+            from: `Gravity <${Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev"}>`,
             to: [meta.buyer_email],
             subject: `🎫 Tu pack "${meta.tier_name}"${quantityText} — ${event?.title || 'Gravity'}`,
             html: emailHtml,
