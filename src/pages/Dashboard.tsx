@@ -536,7 +536,7 @@ const Dashboard = () => {
 
             {/* Event list */}
             <div className="space-y-3">
-              {events.map(event => {
+              {events.filter(e => !barSearch || e.title.toLowerCase().includes(barSearch.toLowerCase()) || e.venue.toLowerCase().includes(barSearch.toLowerCase())).map(event => {
                 const sold = event.price_tiers.reduce((s, t) => s + t.sold, 0);
                 const revenue = tickets.filter(t => t.event_id === event.id).reduce((s, t) => s + Number(t.price), 0);
                 const isExpanded = expandedEvent === event.id;
