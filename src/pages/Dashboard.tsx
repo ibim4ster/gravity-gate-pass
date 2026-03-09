@@ -526,9 +526,9 @@ const Dashboard = () => {
         {tab === 'events' && isAdmin && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{events.length} eventos</p>
+              <p className="text-sm text-muted-foreground">{events.length} bares</p>
               <Button onClick={() => { resetEventForm(); setShowCreateEvent(true); }} className="rounded-xl gap-2">
-                <Plus className="w-4 h-4" /> Nuevo Evento
+                <Plus className="w-4 h-4" /> Nuevo Bar
               </Button>
             </div>
 
