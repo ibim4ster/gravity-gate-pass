@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
-import { Calendar, MapPin, Clock, Users, ArrowLeft, Tag, Loader2, Music, ShieldAlert, Play, Image } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowLeft, Tag, Loader2, Play, Image, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -32,15 +32,15 @@ const EventDetail = () => {
   }, [id]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
-  if (!event) return <div className="container py-20 text-center text-muted-foreground">Evento no encontrado.</div>;
+  if (!event) return <div className="container py-20 text-center text-muted-foreground">Local no encontrado.</div>;
 
   const totalSold = (event.price_tiers || []).reduce((s: number, t: PriceTier) => s + t.sold, 0);
   const soldOutPercentage = event.capacity > 0 ? Math.round((totalSold / event.capacity) * 100) : 0;
   const galleryUrls: string[] = event.gallery_urls || [];
+  const mapsUrl = event.video_url?.includes('google.com/maps') ? event.video_url : null;
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
       <div className="relative h-64 md:h-80 bg-muted overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent z-10" />
         {event.image_url ? (
@@ -59,14 +59,12 @@ const EventDetail = () => {
           </button>
 
           <div className="glass-card p-6 md:p-8 space-y-8">
-            {/* Title */}
             <div className="space-y-4">
               <span className="inline-block px-3 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold">{event.category}</span>
               <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight">{event.title}</h1>
               {event.description && <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{event.description}</p>}
             </div>
 
-            {/* Info */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { icon: Calendar, label: format(new Date(event.date), "d MMMM yyyy", { locale: es }) },
@@ -83,26 +81,15 @@ const EventDetail = () => {
               ))}
             </div>
 
-            {event.min_age > 0 && (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-warning/10 border border-warning/20 text-warning text-sm font-medium">
-                <ShieldAlert className="w-4 h-4" />
-                Edad mínima: +{event.min_age} años
-              </div>
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button variant="outline" className="rounded-xl gap-2">
+                  <MapPin className="w-4 h-4" /> Abrir ubicación en Google Maps <ExternalLink className="w-3.5 h-3.5" />
+                </Button>
+              </a>
             )}
 
-            {event.lineup && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Music className="w-4 h-4 text-primary" />
-                  <span className="font-display">Lineup</span>
-                </div>
-                <div className="p-4 rounded-xl bg-muted">
-                  <p className="text-muted-foreground whitespace-pre-line text-sm">{event.lineup}</p>
-                </div>
-              </div>
-            )}
-
-            {event.video_url && (
+            {!mapsUrl && event.video_url && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Play className="w-4 h-4 text-primary" />
@@ -130,10 +117,9 @@ const EventDetail = () => {
               </div>
             )}
 
-            {/* Capacity */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Aforo</span>
+                <span>Disponibilidad</span>
                 <span>{soldOutPercentage}% vendido</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -141,9 +127,8 @@ const EventDetail = () => {
               </div>
             </div>
 
-            {/* Price tiers */}
             <div className="space-y-3">
-              <h3 className="font-display font-semibold text-lg">Entradas</h3>
+              <h3 className="font-display font-semibold text-lg">Packs disponibles</h3>
               <div className="grid gap-3">
                 {(event.price_tiers || []).map((tier: PriceTier) => {
                   const soldOut = tier.sold >= tier.max_quantity;
@@ -168,7 +153,7 @@ const EventDetail = () => {
                         <div className="text-left">
                           <p className="font-medium text-foreground">{tier.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {soldOut ? 'Agotado' : expired ? 'Expirado' : `${tier.max_quantity - tier.sold} restantes`}
+                            {soldOut ? 'Agotado' : expired ? 'Expirado' : `${tier.max_quantity - tier.sold} disponibles`}
                           </p>
                         </div>
                       </div>
@@ -185,13 +170,12 @@ const EventDetail = () => {
               onClick={() => navigate(`/checkout/${event.id}/${selectedTier}`)}
               className="w-full text-base font-display font-semibold rounded-xl shadow-lg shadow-primary/20"
             >
-              Comprar Entrada
+              Comprar pack
             </Button>
           </div>
         </motion.div>
       </div>
 
-      {/* Lightbox */}
       {selectedImage && (
         <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
           <img src={selectedImage} alt="Galería" className="max-w-full max-h-[90vh] rounded-2xl object-contain" />

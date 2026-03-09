@@ -19,7 +19,10 @@ const Index = () => {
       const { data, error } = await supabase
         .from('events')
         .select('*, price_tiers(*)')
-        .order('date', { ascending: true });
+        .eq('city', 'Logroño')
+        .in('status', ['upcoming', 'active'])
+        .order('title', { ascending: true });
+
       if (!error && data) {
         setEvents(data as EventWithTiers[]);
       }
@@ -28,11 +31,10 @@ const Index = () => {
     fetchEvents();
   }, []);
 
-  const filtered = events.filter(
-    (e) =>
-      e.title.toLowerCase().includes(search.toLowerCase()) ||
-      e.city.toLowerCase().includes(search.toLowerCase()) ||
-      e.category.toLowerCase().includes(search.toLowerCase())
+  const filtered = events.filter((e) =>
+    [e.title, e.city, e.category, e.venue].some((field) =>
+      field.toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   return (
@@ -47,16 +49,16 @@ const Index = () => {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <Sparkles className="w-3.5 h-3.5" />
-              Próximos eventos
+              Ruta San Juan · Logroño
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-              Descubre experiencias
+              Bares y packs de pinchos
             </h1>
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar eventos, ciudades..."
+                placeholder="Buscar bares o packs..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
@@ -77,9 +79,9 @@ const Index = () => {
           )}
           {!loading && filtered.length === 0 && (
             <div className="text-center py-20 space-y-3">
-              <p className="text-muted-foreground">No se encontraron eventos.</p>
+              <p className="text-muted-foreground">No se encontraron bares.</p>
               {events.length === 0 && (
-                <p className="text-sm text-muted-foreground">Inicia sesión como admin para crear eventos.</p>
+                <p className="text-sm text-muted-foreground">Añade locales desde el panel de administración.</p>
               )}
             </div>
           )}

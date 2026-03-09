@@ -77,13 +77,12 @@ const Checkout = () => {
 
       if (error) throw error;
 
-      // Increment sold count
       await supabase
         .from('price_tiers')
         .update({ sold: tier.sold + 1 })
         .eq('id', tier.id);
 
-      toast.success('¡Entrada comprada con éxito!');
+      toast.success('¡Pack comprado con éxito!');
       navigate(`/ticket/${ticket.id}`);
     } catch (err: any) {
       console.error('Purchase error:', err);
@@ -106,12 +105,11 @@ const Checkout = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-primary" />
-              <h2 className="font-display text-2xl font-bold">Compra Express</h2>
+              <h2 className="font-display text-2xl font-bold">Compra de pack</h2>
             </div>
-            <p className="text-sm text-muted-foreground">Sin registro obligatorio. Recibe tu ticket al instante.</p>
+            <p className="text-sm text-muted-foreground">Sin registro obligatorio. Recibe tu QR al instante.</p>
           </div>
 
-          {/* Event summary */}
           <div className="p-4 rounded-xl bg-muted border border-border space-y-3">
             <p className="font-display font-semibold text-foreground">{event.title}</p>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -125,7 +123,6 @@ const Checkout = () => {
             </div>
           </div>
 
-          {/* Form */}
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre completo *</Label>
@@ -166,7 +163,7 @@ const Checkout = () => {
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="w-3.5 h-3.5 text-success" />
-            Pago seguro y cifrado
+            Compra segura y cifrada
           </div>
         </div>
       </motion.div>

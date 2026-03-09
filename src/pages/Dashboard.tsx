@@ -312,7 +312,7 @@ const Dashboard = () => {
     if (error) {
       toast.error(error.message.includes('duplicate') ? 'Ya asignado' : error.message);
     } else {
-      toast.success('Evento asignado');
+      toast.success('Bar asignado');
       fetchData();
     }
     setAssignUserId('');
@@ -349,15 +349,15 @@ const Dashboard = () => {
 
   const adminTabs = [
     { key: 'overview' as const, label: 'Resumen', icon: BarChart3 },
-    { key: 'events' as const, label: 'Eventos', icon: Calendar },
-    { key: 'attendees' as const, label: 'Asistentes', icon: Ticket },
+    { key: 'events' as const, label: 'Bares', icon: Calendar },
+    { key: 'attendees' as const, label: 'Canjes', icon: Ticket },
     { key: 'users' as const, label: 'Usuarios', icon: UserCog },
     { key: 'logs' as const, label: 'Auditoría', icon: ClipboardList },
   ];
 
   const staffTabs = [
     { key: 'overview' as const, label: 'Resumen', icon: BarChart3 },
-    { key: 'attendees' as const, label: 'Asistentes', icon: Ticket },
+    { key: 'attendees' as const, label: 'Canjes', icon: Ticket },
     { key: 'logs' as const, label: 'Auditoría', icon: ClipboardList },
   ];
 
@@ -428,10 +428,10 @@ const Dashboard = () => {
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
                 <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Todos los eventos" />
+                  <SelectValue placeholder="Todos los bares" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los eventos</SelectItem>
+                  <SelectItem value="all">Todos los bares</SelectItem>
                   {visibleEvents.map(e => (
                     <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                   ))}
@@ -443,14 +443,14 @@ const Dashboard = () => {
               <StatCard icon={DollarSign} label="Ingresos" value={`${totalRevenue.toFixed(0)}€`} sub="Total acumulado" trend="up" />
               <StatCard icon={Ticket} label="Tickets" value={`${filteredTicketsForOverview.length}`} sub={`${usedTickets} canjeados`} />
               <StatCard icon={Activity} label="Ocupación" value={`${totalSold}/${totalCapacity}`} sub={`${totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0}% vendido`} />
-              <StatCard icon={Calendar} label="Eventos" value={`${overviewEvents.length}`} sub={`${overviewEvents.filter(e => e.status === 'upcoming').length} activos`} />
+              <StatCard icon={Calendar} label="Bares" value={`${overviewEvents.length}`} sub={`${overviewEvents.filter(e => e.status === 'upcoming').length} activos`} />
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
               <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
                 <h3 className="font-display font-semibold flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  Ventas por evento
+                   Ventas por bar
                 </h3>
                 {overviewEvents.map((event) => {
                   const sold = event.price_tiers.reduce((s, t) => s + t.sold, 0);
@@ -469,7 +469,7 @@ const Dashboard = () => {
                     </div>
                   );
                 })}
-                {overviewEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay eventos.</p>}
+                {overviewEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay bares.</p>}
               </div>
 
               <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
@@ -526,16 +526,16 @@ const Dashboard = () => {
         {tab === 'events' && isAdmin && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{events.length} eventos</p>
+              <p className="text-sm text-muted-foreground">{events.length} bares</p>
               <Button onClick={() => { resetEventForm(); setShowCreateEvent(true); }} className="rounded-xl gap-2">
-                <Plus className="w-4 h-4" /> Nuevo Evento
+                <Plus className="w-4 h-4" /> Nuevo Bar
               </Button>
             </div>
 
             {showCreateEvent && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-background rounded-2xl border border-border p-6 space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-display font-semibold text-lg">{editingEventId ? 'Editar Evento' : 'Crear Evento'}</h3>
+                  <h3 className="font-display font-semibold text-lg">{editingEventId ? 'Editar Bar' : 'Crear Bar'}</h3>
                   <Button variant="ghost" size="sm" onClick={resetEventForm}><X className="w-4 h-4" /></Button>
                 </div>
 
@@ -604,7 +604,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button onClick={saveEvent} className="rounded-xl gap-2"><Save className="w-4 h-4" />{editingEventId ? 'Guardar Cambios' : 'Crear Evento'}</Button>
+                  <Button onClick={saveEvent} className="rounded-xl gap-2"><Save className="w-4 h-4" />{editingEventId ? 'Guardar Cambios' : 'Crear Bar'}</Button>
                   <Button variant="outline" onClick={resetEventForm} className="rounded-xl">Cancelar</Button>
                 </div>
               </motion.div>
@@ -681,7 +681,7 @@ const Dashboard = () => {
                         </div>
                         {assignedUsers.length > 0 && (
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Staff asignado:</p>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Staff asignado al bar:</p>
                             <div className="flex flex-wrap gap-2">
                               {assignedUsers.map((u: any) => (
                                 <span key={u.user_id} className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
@@ -705,14 +705,14 @@ const Dashboard = () => {
         {tab === 'attendees' && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">{filteredTickets.length} tickets</p>
+              <p className="text-sm text-muted-foreground">{filteredTickets.length} canjes</p>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Select value={attendeeEventFilter} onValueChange={setAttendeeEventFilter}>
                   <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Todos los eventos" />
+                    <SelectValue placeholder="Todos los bares" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los eventos</SelectItem>
+                    <SelectItem value="all">Todos los bares</SelectItem>
                     {visibleEvents.map(e => (
                       <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                     ))}
@@ -734,7 +734,7 @@ const Dashboard = () => {
                       <th className="p-3 font-medium">Email</th>
                       <th className="p-3 font-medium">Teléfono</th>
                       <th className="p-3 font-medium">DNI</th>
-                      <th className="p-3 font-medium">Evento</th>
+                      <th className="p-3 font-medium">Bar</th>
                       <th className="p-3 font-medium">Tipo</th>
                       <th className="p-3 font-medium text-right">Precio</th>
                       <th className="p-3 font-medium">Estado</th>
@@ -848,7 +848,7 @@ const Dashboard = () => {
 
                     {assignedEvents.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Eventos asignados</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Bares asignados</p>
                         <div className="flex flex-wrap gap-1">
                           {assignedEvents.map((ev: any) => (
                             <span key={ev.id} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-medium">{ev.title}</span>
@@ -890,9 +890,9 @@ const Dashboard = () => {
             <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
               <h3 className="font-display font-semibold flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-primary" />
-                Asignación de eventos
-              </h3>
-              <p className="text-sm text-muted-foreground">Asigna staff u organizadores a eventos para limitar su visibilidad.</p>
+                 Asignación de bares/restaurantes
+               </h3>
+               <p className="text-sm text-muted-foreground">Asigna staff u organizadores a bares para limitar su visibilidad.</p>
               <div className="flex flex-wrap gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs">Usuario (Staff/Admin)</Label>
@@ -906,7 +906,7 @@ const Dashboard = () => {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Evento</Label>
+                  <Label className="text-xs">Bar / Restaurante</Label>
                   <Select value={assignEventId} onValueChange={setAssignEventId}>
                     <SelectTrigger className="w-52"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
@@ -926,7 +926,7 @@ const Dashboard = () => {
                     const ev = events.find(e => e.id === a.event_id);
                     return (
                       <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-muted">
-                        <span className="text-sm"><span className="font-medium">{u?.display_name || u?.email || 'Desconocido'}</span> → <span className="text-primary font-medium">{ev?.title || 'Evento'}</span></span>
+                        <span className="text-sm"><span className="font-medium">{u?.display_name || u?.email || 'Desconocido'}</span> → <span className="text-primary font-medium">{ev?.title || 'Bar'}</span></span>
                         <Button size="sm" variant="ghost" className="text-destructive h-7 w-7 p-0" onClick={() => removeAssignment(a.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -953,8 +953,8 @@ const Dashboard = () => {
                   <tr className="text-muted-foreground text-left border-b border-border">
                     <th className="p-3 font-medium">Fecha</th>
                     <th className="p-3 font-medium">Asistente</th>
-                    <th className="p-3 font-medium">Evento</th>
-                    <th className="p-3 font-medium">Resultado</th>
+                     <th className="p-3 font-medium">Bar</th>
+                     <th className="p-3 font-medium">Resultado</th>
                     <th className="p-3 font-medium">Staff</th>
                   </tr>
                 </thead>

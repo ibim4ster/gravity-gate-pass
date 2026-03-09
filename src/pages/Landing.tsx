@@ -5,12 +5,12 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Shield, Zap, Ticket, QrCode, BarChart3, Users, Sparkles } from 'lucide-react';
 
 const features = [
-  { icon: Zap, title: 'Compra Express', desc: 'Compra entradas sin registro. Solo nombre y email.' },
-  { icon: QrCode, title: 'QR Seguro', desc: 'Cada ticket lleva una firma digital única e infalsificable.' },
-  { icon: Shield, title: 'Antifraude', desc: 'Prevención de doble entrada con validación en tiempo real.' },
-  { icon: BarChart3, title: 'Analytics', desc: 'Dashboard completo con métricas de ventas y aforo.' },
-  { icon: Users, title: 'Control de Staff', desc: 'Asigna roles y eventos a tu equipo de puerta.' },
-  { icon: Ticket, title: 'Wallet Digital', desc: 'Todos tus tickets en un solo lugar, siempre accesibles.' },
+  { icon: Zap, title: 'Compra rápida', desc: 'Compra packs sin fricción y recíbelos al instante en tu wallet.' },
+  { icon: QrCode, title: 'QR validable', desc: 'Cada compra genera un código seguro listo para canjear en barra.' },
+  { icon: Shield, title: 'Control antifraude', desc: 'Evita canjes duplicados y valida en tiempo real con el scanner.' },
+  { icon: BarChart3, title: 'Panel por local', desc: 'Métricas de ventas por bar/restaurante y por tipo de pack.' },
+  { icon: Users, title: 'Gestión de staff', desc: 'Asigna personal a bares concretos para acceso segmentado.' },
+  { icon: Ticket, title: 'Packs digitales', desc: 'Pincho individual, pack 5 pinchos o pack 5 vinos en un clic.' },
 ];
 
 const Landing = () => {
@@ -18,7 +18,6 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <div className="container relative py-24 md:py-36">
@@ -30,29 +29,29 @@ const Landing = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <Sparkles className="w-4 h-4" />
-              Plataforma de ticketing inteligente
+              Calle San Juan · Logroño
             </div>
 
             <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
-              Experiencias sin{' '}
-              <span className="text-primary">fricción</span>
+              Gravity para la{' '}
+              <span className="text-primary">ruta de pinchos</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Gravity es el ecosistema de venta de entradas diseñado para la conversión máxima 
-              y seguridad total en puerta. Compra, valida y gestiona — todo en un solo lugar.
+              Descubre bares, compra packs y canjéalos con QR en segundos.
+              Un flujo único para clientes, staff y administración en Calle San Juan.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/events">
                 <Button size="lg" className="rounded-xl text-base px-8 gap-2 shadow-lg shadow-primary/25">
-                  Explorar eventos <ArrowRight className="w-4 h-4" />
+                  Ver bares y packs <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               {!user && (
                 <Link to="/auth">
                   <Button variant="outline" size="lg" className="rounded-xl text-base px-8">
-                    Crear cuenta gratis
+                    Crear cuenta
                   </Button>
                 </Link>
               )}
@@ -61,7 +60,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features */}
       <section className="py-20 bg-muted/30">
         <div className="container">
           <motion.div
@@ -71,10 +69,10 @@ const Landing = () => {
             className="text-center mb-16 space-y-4"
           >
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
-              Todo lo que necesitas
+              Todo el recorrido en una app
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Desde la compra express hasta el control de puerta, Gravity cubre cada paso del proceso.
+              Desde la compra del pack hasta el canje en cada bar, sin tickets en papel.
             </p>
           </motion.div>
 
@@ -99,7 +97,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-20">
         <div className="container">
           <motion.div
@@ -109,15 +106,15 @@ const Landing = () => {
             className="max-w-2xl mx-auto text-center space-y-8 glass-card p-12"
           >
             <h2 className="font-display text-3xl font-bold tracking-tight">
-              ¿Listo para empezar?
+              ¿Te vienes de pinchos?
             </h2>
             <p className="text-muted-foreground">
-              Únete a Gravity y descubre una nueva forma de gestionar tus eventos.
+              Entra a Gravity, compra tu pack y empieza la ruta de San Juan.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/events">
                 <Button size="lg" className="rounded-xl px-8 gap-2">
-                  Ver eventos <ArrowRight className="w-4 h-4" />
+                  Explorar bares <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             </div>
@@ -125,7 +122,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -134,7 +130,7 @@ const Landing = () => {
             </div>
             <span className="font-display font-semibold text-sm">Gravity</span>
           </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Gravity. Todos los derechos reservados.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Gravity · Ruta San Juan</p>
         </div>
       </footer>
     </div>

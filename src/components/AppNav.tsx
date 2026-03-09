@@ -13,11 +13,11 @@ const AppNav = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const items: { label: string; path: string; icon: React.ElementType }[] = [
-    { label: 'Eventos', path: '/events', icon: Sparkles },
+    { label: 'Bares & Packs', path: '/events', icon: Sparkles },
   ];
 
   if (user) {
-    items.push({ label: 'Mis Tickets', path: '/wallet', icon: Ticket });
+    items.push({ label: 'Mis Packs', path: '/wallet', icon: Ticket });
   }
   if (user && (hasRole('staff') || hasRole('admin'))) {
     items.push({ label: 'Scanner', path: '/scanner', icon: ScanLine });
