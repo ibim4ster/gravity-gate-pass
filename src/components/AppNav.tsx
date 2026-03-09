@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Ticket, ScanLine, LayoutDashboard, LogIn, LogOut, Sun, Moon, Menu, X, Sparkles } from 'lucide-react';
+import { Ticket, ScanLine, LayoutDashboard, LogIn, LogOut, Sun, Moon, Menu, X, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ const AppNav = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const items: { label: string; path: string; icon: React.ElementType }[] = [
-    { label: 'Bares & Packs', path: '/events', icon: Sparkles },
+    { label: 'Bares & Packs', path: '/', icon: UtensilsCrossed },
   ];
 
   if (user) {
@@ -30,9 +30,7 @@ const AppNav = () => {
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-            <span className="font-display font-bold text-primary-foreground text-sm">G</span>
-          </div>
+          <img src="/logo-sanjuan.png" alt="San Juan" className="h-9 w-auto object-contain" />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
             Gravity
           </span>
@@ -41,7 +39,7 @@ const AppNav = () => {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {items.map((item) => {
-            const active = location.pathname === item.path;
+            const active = location.pathname === item.path || (item.path === '/' && location.pathname === '/events');
             return (
               <Link
                 key={item.path}

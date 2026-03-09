@@ -7,7 +7,6 @@ import { AuthProvider } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
 import AppNav from "./components/AppNav";
 import Index from "./pages/Index";
-import Landing from "./pages/Landing";
 import EventDetail from "./pages/EventDetail";
 import Checkout from "./pages/Checkout";
 import TicketView from "./pages/TicketView";
@@ -31,7 +30,7 @@ const App = () => (
               <AppNav />
               <main className="flex-1">
                 <Routes>
-                  <Route path="/" element={<Landing />} />
+                  <Route path="/" element={<Index />} />
                   <Route path="/events" element={<Index />} />
                   <Route path="/event/:id" element={<EventDetail />} />
                   <Route path="/checkout/:eventId/:tierId" element={<Checkout />} />

@@ -16,16 +16,6 @@ interface ScanResult {
   message: string;
 }
 
-type ScannerMode = 'barcode_detector' | 'html5_qrcode' | null;
-type BarcodeDetectorResult = { rawValue?: string };
-type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeDetectorResult[]> };
-
-declare global {
-  interface Window {
-    BarcodeDetector?: new (options?: { formats: string[] }) => BarcodeDetectorInstance;
-  }
-}
-
 const QR_READER_ID = 'gravity-qr-reader';
 
 const Scanner = () => {
@@ -34,15 +24,9 @@ const Scanner = () => {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [scannerMode, setScannerMode] = useState<ScannerMode>(null);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const animFrameRef = useRef<number>(0);
-  const processingRef = useRef(false);
-  const detectorRef = useRef<BarcodeDetectorInstance | null>(null);
   const html5QrRef = useRef<Html5Qrcode | null>(null);
+  const processingRef = useRef(false);
 
   const canScan = hasRole('staff') || hasRole('admin');
 
@@ -69,11 +53,8 @@ const Scanner = () => {
         setResult({ status: 'invalid', ticket, message: 'Firma digital no válida — posible falsificación' });
         if (user) {
           await supabase.from('scan_logs').insert({
-            ticket_id: ticket.id,
-            event_id: ticket.event_id,
-            staff_id: user.id,
-            result: 'invalid',
-            attendee_name: ticket.buyer_name,
+            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
+            result: 'invalid', attendee_name: ticket.buyer_name,
           });
         }
         return;
@@ -83,11 +64,8 @@ const Scanner = () => {
         setResult({ status: 'already_used', ticket, message: `Ya canjeado el ${new Date(ticket.used_at!).toLocaleString('es')}` });
         if (user) {
           await supabase.from('scan_logs').insert({
-            ticket_id: ticket.id,
-            event_id: ticket.event_id,
-            staff_id: user.id,
-            result: 'already_used',
-            attendee_name: ticket.buyer_name,
+            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
+            result: 'already_used', attendee_name: ticket.buyer_name,
           });
         }
         return;
@@ -97,137 +75,56 @@ const Scanner = () => {
 
       if (user) {
         await supabase.from('scan_logs').insert({
-          ticket_id: ticket.id,
-          event_id: ticket.event_id,
-          staff_id: user.id,
-          result: 'valid',
-          attendee_name: ticket.buyer_name,
+          ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
+          result: 'valid', attendee_name: ticket.buyer_name,
         });
       }
 
-      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, message: 'Entrada válida' });
+      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, message: 'Canje válido ✓' });
     } catch {
       setResult({ status: 'invalid', message: 'Error al validar' });
     } finally {
-      setTimeout(() => {
-        processingRef.current = false;
-      }, 1200);
+      setTimeout(() => { processingRef.current = false; }, 1500);
     }
   }, [user]);
-
-  const scanFrame = useCallback(() => {
-    if (scannerMode !== 'barcode_detector' || !videoRef.current || !canvasRef.current || !detectorRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      animFrameRef.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-
-    detectorRef.current
-      .detect(canvas)
-      .then((barcodes) => {
-        if (barcodes.length > 0 && barcodes[0].rawValue && !processingRef.current) {
-          void validateTicket(barcodes[0].rawValue);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        animFrameRef.current = requestAnimationFrame(scanFrame);
-      });
-  }, [scannerMode, validateTicket]);
-
-  const startBarcodeScanner = async () => {
-    const BarcodeDetectorClass = window.BarcodeDetector;
-    if (!BarcodeDetectorClass) throw new Error('BarcodeDetector no soportado');
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-    });
-
-    streamRef.current = stream;
-    detectorRef.current = new BarcodeDetectorClass({ formats: ['qr_code'] });
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-    }
-
-    setScannerMode('barcode_detector');
-    setCameraActive(true);
-    animFrameRef.current = requestAnimationFrame(scanFrame);
-  };
-
-  const startHtml5Scanner = async () => {
-    setScannerMode('html5_qrcode');
-    setCameraActive(true);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const html5 = new Html5Qrcode(QR_READER_ID, { verbose: false });
-    html5QrRef.current = html5;
-
-    await html5.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 260, height: 260 } },
-      (decodedText) => {
-        if (!processingRef.current) void validateTicket(decodedText);
-      },
-      () => {}
-    );
-  };
 
   const startCamera = async () => {
     setCameraError(null);
     try {
-      if (window.BarcodeDetector) {
-        try {
-          await startBarcodeScanner();
-          return;
-        } catch {
-          await startHtml5Scanner();
-          return;
-        }
-      }
-      await startHtml5Scanner();
+      // Always use html5-qrcode for maximum compatibility
+      setCameraActive(true);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const html5 = new Html5Qrcode(QR_READER_ID, { verbose: false });
+      html5QrRef.current = html5;
+
+      await html5.start(
+        { facingMode: 'environment' },
+        { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1 },
+        (decodedText) => {
+          if (!processingRef.current) void validateTicket(decodedText);
+        },
+        () => {}
+      );
     } catch (err: any) {
       console.error('Camera error:', err);
-      setCameraError(err?.name === 'NotAllowedError'
-        ? 'Permiso de cámara denegado. Activa el permiso en la configuración del navegador.'
-        : 'No se pudo escanear desde la cámara. Prueba mejor iluminación o enfoca más de cerca el QR.');
-      toast.error('Error al acceder al escáner');
+      setCameraError(
+        err?.name === 'NotAllowedError'
+          ? 'Permiso de cámara denegado. Activa el permiso en la configuración del navegador.'
+          : 'No se pudo acceder a la cámara. Asegúrate de usar HTTPS y conceder permisos.'
+      );
+      toast.error('Error al acceder a la cámara');
       setCameraActive(false);
-      setScannerMode(null);
     }
   };
 
   const stopCamera = useCallback(async () => {
-    cancelAnimationFrame(animFrameRef.current);
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
     if (html5QrRef.current) {
       try { await html5QrRef.current.stop(); } catch {}
       try { await html5QrRef.current.clear(); } catch {}
       html5QrRef.current = null;
     }
-
-    detectorRef.current = null;
     setCameraActive(false);
-    setScannerMode(null);
   }, []);
 
   useEffect(() => {
@@ -247,31 +144,15 @@ const Scanner = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1 relative bg-black flex items-center justify-center min-h-[55vh]">
-        <video ref={videoRef} className={`w-full h-full object-cover absolute inset-0 ${cameraActive && scannerMode === 'barcode_detector' ? '' : 'hidden'}`} playsInline muted />
-        <canvas ref={canvasRef} className="hidden" />
-        <div className={`absolute inset-0 ${cameraActive && scannerMode === 'html5_qrcode' ? '' : 'hidden'}`}>
-          <div id={QR_READER_ID} className="h-full w-full" />
+        {/* html5-qrcode container */}
+        <div className={`absolute inset-0 ${cameraActive ? '' : 'hidden'}`}>
+          <div id={QR_READER_ID} className="h-full w-full [&_video]{object-fit:cover;width:100%;height:100%}" />
         </div>
 
         {cameraActive && (
-          <>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="relative w-64 h-64">
-                <div className="absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_20px_hsl(217,91%,60%)] animate-scanner" />
-                {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
-                  <div key={i} className={`absolute ${pos} w-10 h-10 border-primary ${
-                    i === 0 ? 'border-t-3 border-l-3 rounded-tl-2xl' :
-                    i === 1 ? 'border-t-3 border-r-3 rounded-tr-2xl' :
-                    i === 2 ? 'border-b-3 border-l-3 rounded-bl-2xl' :
-                    'border-b-3 border-r-3 rounded-br-2xl'
-                  }`} />
-                ))}
-              </div>
-            </div>
-            <Button onClick={() => void stopCamera()} variant="outline" className="absolute top-4 right-4 z-30 rounded-xl gap-2 bg-background/80 backdrop-blur-sm">
-              <CameraOff className="w-4 h-4" /> Detener
-            </Button>
-          </>
+          <Button onClick={() => void stopCamera()} variant="outline" className="absolute top-4 right-4 z-30 rounded-xl gap-2 bg-background/80 backdrop-blur-sm">
+            <CameraOff className="w-4 h-4" /> Detener
+          </Button>
         )}
 
         {!cameraActive && (
@@ -297,6 +178,7 @@ const Scanner = () => {
                 {result.status === 'valid' ? <CheckCircle2 className="w-20 h-20 mx-auto text-green-500" /> : result.status === 'already_used' ? <AlertTriangle className="w-20 h-20 mx-auto text-yellow-500" /> : <XCircle className="w-20 h-20 mx-auto text-red-500" />}
                 <p className="font-display text-2xl font-bold text-white">{result.status === 'valid' ? '✓ VÁLIDO' : result.status === 'already_used' ? '⚠ YA CANJEADO' : '✗ INVÁLIDO'}</p>
                 {result.ticket && <p className="text-xl font-semibold text-white">{result.ticket.buyer_name}</p>}
+                {result.ticket && <p className="text-sm text-white/60">{result.ticket.tier_name}</p>}
                 <p className="text-sm text-white/70">{result.message}</p>
                 <Button variant="outline" onClick={() => setResult(null)} className="mt-2 rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20">Escanear otro</Button>
               </div>
