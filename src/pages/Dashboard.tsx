@@ -848,7 +848,7 @@ const Dashboard = () => {
 
                     {assignedEvents.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Eventos asignados</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Bares asignados</p>
                         <div className="flex flex-wrap gap-1">
                           {assignedEvents.map((ev: any) => (
                             <span key={ev.id} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-medium">{ev.title}</span>
