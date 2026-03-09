@@ -71,8 +71,9 @@ const Dashboard = () => {
     category: 'Bar/Restaurante', capacity: '500', status: 'active',
     image_url: '', maps_url: '', lineup: '', min_age: '0',
     gallery_urls: '',
-    tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '' }],
+    tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
   });
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [attendeeSearch, setAttendeeSearch] = useState('');
   const [attendeeEventFilter, setAttendeeEventFilter] = useState<string>('all');
