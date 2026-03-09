@@ -537,15 +537,18 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   <h4 className="font-display font-medium text-sm">Packs de pinchos / vinos</h4>
                   {eventForm.tiers.map((tier, i) => (
-                    <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end p-3 rounded-xl bg-muted">
-                      <div><Label className="text-xs">Nombre</Label><Input value={tier.name} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], name: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Precio (€)</Label><Input type="number" value={tier.price} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], price: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Cantidad</Label><Input type="number" value={tier.maxQuantity} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], maxQuantity: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <div><Label className="text-xs">Expira</Label><Input type="datetime-local" value={tier.expiresAt} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], expiresAt: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
-                      <Button variant="ghost" size="sm" onClick={() => tier.id ? deleteTier(tier.id) : setEventForm({ ...eventForm, tiers: eventForm.tiers.filter((_, j) => j !== i) })} className="text-destructive self-end"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <div key={i} className="p-3 rounded-xl bg-muted space-y-2">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+                        <div><Label className="text-xs">Nombre</Label><Input value={tier.name} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], name: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Precio (€)</Label><Input type="number" value={tier.price} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], price: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Cantidad</Label><Input type="number" value={tier.maxQuantity} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], maxQuantity: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <div><Label className="text-xs">Expira</Label><Input type="datetime-local" value={tier.expiresAt} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], expiresAt: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} /></div>
+                        <Button variant="ghost" size="sm" onClick={() => tier.id ? deleteTier(tier.id) : setEventForm({ ...eventForm, tiers: eventForm.tiers.filter((_, j) => j !== i) })} className="text-destructive self-end"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                      <div><Label className="text-xs">Descripción del pack</Label><Input value={tier.description} onChange={e => { const t = [...eventForm.tiers]; t[i] = { ...t[i], description: e.target.value }; setEventForm({ ...eventForm, tiers: t }); }} placeholder="Ej: Incluye pincho + caña" /></div>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEventForm({ ...eventForm, tiers: [...eventForm.tiers, { id: '', name: '', price: '0', maxQuantity: '50', expiresAt: '' }] })}>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEventForm({ ...eventForm, tiers: [...eventForm.tiers, { id: '', name: '', price: '0', maxQuantity: '50', expiresAt: '', description: '' }] })}>
                     + Añadir pack
                   </Button>
                 </div>
