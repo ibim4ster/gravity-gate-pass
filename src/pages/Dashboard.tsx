@@ -357,7 +357,7 @@ const Dashboard = () => {
 
   const staffTabs = [
     { key: 'overview' as const, label: 'Resumen', icon: BarChart3 },
-    { key: 'attendees' as const, label: 'Asistentes', icon: Ticket },
+    { key: 'attendees' as const, label: 'Canjes', icon: Ticket },
     { key: 'logs' as const, label: 'Auditoría', icon: ClipboardList },
   ];
 
