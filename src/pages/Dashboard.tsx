@@ -497,9 +497,10 @@ const Dashboard = () => {
                     <Select value={eventForm.status} onValueChange={v => setEventForm({ ...eventForm, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="cerrado">Cerrado</SelectItem>
                         <SelectItem value="active">Activo</SelectItem>
                         <SelectItem value="upcoming">Próximamente</SelectItem>
-                        <SelectItem value="ended">Cerrado</SelectItem>
+                        <SelectItem value="ended">Finalizado</SelectItem>
                         <SelectItem value="cancelled">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
