@@ -469,7 +469,7 @@ const Dashboard = () => {
                     </div>
                   );
                 })}
-                {overviewEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay eventos.</p>}
+                {overviewEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay bares.</p>}
               </div>
 
               <div className="bg-background rounded-2xl border border-border p-6 space-y-4">
