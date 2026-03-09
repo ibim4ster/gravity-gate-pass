@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
