@@ -160,10 +160,11 @@ const Dashboard = () => {
   const usedTickets = filteredTicketsForOverview.filter((t) => t.status === 'used').length;
   const overviewEvents = selectedEventFilter === 'all' ? visibleEvents : visibleEvents.filter(e => e.id === selectedEventFilter);
 
+  const eventForm_status_default = 'cerrado';
   const resetEventForm = () => {
     setEventForm({
       title: '', description: '', date: '', time: '', venue: '', city: 'Logroño',
-      category: 'Bar/Restaurante', capacity: '500', status: 'active',
+      category: 'Bar/Restaurante', capacity: '500', status: eventForm_status_default,
       image_url: '', maps_url: '', lineup: '', min_age: '0', gallery_urls: '',
       tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
     });
