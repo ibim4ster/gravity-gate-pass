@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Contact from "./pages/Contact";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/contacto" element={<Contact />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

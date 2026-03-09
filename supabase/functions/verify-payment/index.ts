@@ -54,7 +54,7 @@ serve(async (req) => {
       });
     }
 
-    // Create ticket with quantity
+    // Create ticket with quantity - THIS MUST ALWAYS SUCCEED regardless of email
     const { data: ticket, error: ticketError } = await supabaseAdmin
       .from("tickets")
       .insert({
@@ -96,28 +96,29 @@ serve(async (req) => {
       .eq("id", meta.event_id)
       .single();
 
-    // Send email via Resend
+    // Send email via Resend - completely independent of ticket creation
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (resendApiKey) {
       try {
-        const ticketUrl = `${req.headers.get("origin")}/ticket/${ticket.id}`;
+        const origin = req.headers.get("origin") || "https://gravity-gate-pass.lovable.app";
+        const ticketUrl = `${origin}/ticket/${ticket.id}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${ticket.qr_code}|${ticket.qr_signature}`)}`;
         const eventDate = event?.date ? new Date(event.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
         const totalPrice = (parseFloat(meta.price) * quantity).toFixed(2);
-        const quantityText = quantity > 1 ? ` x${quantity}` : '';
+        const quantityText = quantity > 1 ? ` × ${quantity}` : '';
 
-        const emailHtml = `
-<!DOCTYPE html>
+        const emailHtml = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tu entrada</title>
+  <title>Tu pack</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
   <div style="max-width:580px;margin:0 auto;padding:40px 20px;">
     
     <div style="text-align:center;margin-bottom:32px;">
-      <img src="${req.headers.get("origin")}/logo-sanjuan.png" alt="Calle San Juan · Logroño" style="height:48px;" />
+      <img src="${origin}/logo-sanjuan.png" alt="Calle San Juan · Logroño" style="height:48px;" />
     </div>
 
     <div style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
@@ -163,7 +164,7 @@ serve(async (req) => {
           </tr>` : ''}
           <tr>
             <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Precio total</td>
-            <td style="padding:10px 0;text-align:right;color:#2d7a5a;font-size:14px;font-weight:600;">${totalPrice}€</td>
+            <td style="padding:10px 0;text-align:right;color:#2d7a5a;font-size:16px;font-weight:700;">${totalPrice} €</td>
           </tr>
           <tr>
             <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Nombre</td>
@@ -176,9 +177,18 @@ serve(async (req) => {
         </table>
       </div>
 
+      <!-- QR Code section -->
+      <div style="padding:0 32px 32px;text-align:center;">
+        <p style="color:#86868b;font-size:12px;margin:0 0 16px 0;font-weight:500;">Tu código QR — Preséntalo en el bar</p>
+        <div style="background:#ffffff;border:2px solid #e5e5e7;border-radius:16px;padding:20px;display:inline-block;">
+          <img src="${qrApiUrl}" alt="Código QR" style="width:200px;height:200px;display:block;" />
+        </div>
+        <p style="font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:10px;color:#aeaeb2;margin:12px 0 0 0;letter-spacing:1px;">${ticket.qr_code}</p>
+      </div>
+
       <div style="padding:0 32px 36px;text-align:center;">
         <a href="${ticketUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#1d5c40);color:#ffffff;padding:16px 48px;border-radius:14px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.1px;box-shadow:0 4px 12px rgba(45,122,90,0.3);">Ver mi ticket</a>
-        <p style="color:#86868b;font-size:12px;margin:16px 0 0 0;font-weight:400;">Presenta el código QR en el establecimiento</p>
+        <p style="color:#86868b;font-size:12px;margin:16px 0 0 0;font-weight:400;">También puedes presentar este email directamente</p>
       </div>
     </div>
 
@@ -190,7 +200,7 @@ serve(async (req) => {
 </body>
 </html>`;
 
-        await fetch("https://api.resend.com/emails", {
+        const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${resendApiKey}`,
@@ -203,16 +213,23 @@ serve(async (req) => {
             html: emailHtml,
           }),
         });
+        const emailBody = await emailRes.text();
+        if (!emailRes.ok) {
+          console.error("Email API error:", emailRes.status, emailBody);
+        }
       } catch (emailErr) {
         console.error("Email sending failed:", emailErr);
+        // Email failure does NOT affect ticket creation
       }
     }
 
+    // Always return the ticket regardless of email success
     return new Response(JSON.stringify({ ticketId: ticket.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
+    console.error("verify-payment error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

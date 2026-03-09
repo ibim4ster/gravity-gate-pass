@@ -62,6 +62,7 @@ const Dashboard = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'events' | 'attendees' | 'users' | 'logs'>('overview');
+  const [overviewSearch, setOverviewSearch] = useState('');
 
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
@@ -86,6 +87,8 @@ const Dashboard = () => {
   const [assignEventId, setAssignEventId] = useState('');
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
 
   const fetchData = async () => {
     if (isAdmin) {
@@ -155,12 +158,14 @@ const Dashboard = () => {
 
   const totalRevenue = filteredTicketsForOverview.reduce((s, t) => s + Number(t.price), 0);
   const usedTickets = filteredTicketsForOverview.filter((t) => t.status === 'used').length;
-  const overviewEvents = selectedEventFilter === 'all' ? visibleEvents : visibleEvents.filter(e => e.id === selectedEventFilter);
+  const overviewEvents = (selectedEventFilter === 'all' ? visibleEvents : visibleEvents.filter(e => e.id === selectedEventFilter))
+    .filter(e => !overviewSearch || e.title.toLowerCase().includes(overviewSearch.toLowerCase()) || e.venue.toLowerCase().includes(overviewSearch.toLowerCase()));
 
+  const eventForm_status_default = 'cerrado';
   const resetEventForm = () => {
     setEventForm({
       title: '', description: '', date: '', time: '', venue: '', city: 'Logroño',
-      category: 'Bar/Restaurante', capacity: '500', status: 'active',
+      category: 'Bar/Restaurante', capacity: '500', status: eventForm_status_default,
       image_url: '', maps_url: '', lineup: '', min_age: '0', gallery_urls: '',
       tiers: [{ id: '', name: 'Pincho individual', price: '3', maxQuantity: '200', expiresAt: '', description: '' }],
     });
@@ -283,6 +288,38 @@ const Dashboard = () => {
     else { toast.success('Usuario actualizado'); setEditingUser(null); fetchData(); }
   };
 
+  const deleteUser = async (userId: string) => {
+    if (!confirm('¿Eliminar este usuario permanentemente? Se borrarán todos sus datos.')) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+        body: { action: 'delete', userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Usuario eliminado');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar usuario');
+    }
+  };
+
+  const resetUserPassword = async () => {
+    if (!resetPasswordUserId || !newPasswordValue) return;
+    if (newPasswordValue.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+        body: { action: 'reset-password', userId: resetPasswordUserId, newPassword: newPasswordValue },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Contraseña restablecida');
+      setResetPasswordUserId(null);
+      setNewPasswordValue('');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al restablecer contraseña');
+    }
+  };
+
   const assignEvent = async () => {
     if (!assignUserId || !assignEventId) return;
     const { error } = await supabase.from('event_assignments').insert({ user_id: assignUserId, event_id: assignEventId });
@@ -369,15 +406,21 @@ const Dashboard = () => {
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-                <SelectTrigger className="w-64"><SelectValue placeholder="Todos los bares" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los bares</SelectItem>
-                  {visibleEvents.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+                  <SelectTrigger className="w-64"><SelectValue placeholder="Todos los bares" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los bares</SelectItem>
+                    {visibleEvents.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar bares..." value={overviewSearch} onChange={e => setOverviewSearch(e.target.value)} className="pl-10" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -486,9 +529,10 @@ const Dashboard = () => {
                     <Select value={eventForm.status} onValueChange={v => setEventForm({ ...eventForm, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="cerrado">Cerrado</SelectItem>
                         <SelectItem value="active">Activo</SelectItem>
                         <SelectItem value="upcoming">Próximamente</SelectItem>
-                        <SelectItem value="ended">Cerrado</SelectItem>
+                        <SelectItem value="ended">Finalizado</SelectItem>
                         <SelectItem value="cancelled">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
@@ -760,10 +804,18 @@ const Dashboard = () => {
                           <p className="text-xs text-muted-foreground">{u.email || '—'}</p>
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => {
-                        setEditingUser(u);
-                        setEditUserForm({ display_name: u.display_name || '', email: u.email || '' });
-                      }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => {
+                          setEditingUser(u);
+                          setEditUserForm({ display_name: u.display_name || '', email: u.email || '' });
+                        }}><Edit2 className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setResetPasswordUserId(u.user_id); setNewPasswordValue(''); }} title="Resetear contraseña">
+                          <Shield className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => deleteUser(u.user_id)} title="Eliminar usuario">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Registrado: {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}</p>
@@ -824,6 +876,27 @@ const Dashboard = () => {
                     <div className="flex gap-2">
                       <Button onClick={updateUserProfile} className="rounded-xl gap-2"><Save className="w-4 h-4" />Guardar</Button>
                       <Button variant="outline" onClick={() => setEditingUser(null)} className="rounded-xl">Cancelar</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {resetPasswordUserId && (
+              <Dialog open={!!resetPasswordUserId} onOpenChange={() => setResetPasswordUserId(null)}>
+                <DialogContent className="max-w-xs">
+                  <DialogHeader><DialogTitle>Restablecer contraseña</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Usuario: <strong>{users.find(u => u.user_id === resetPasswordUserId)?.display_name || users.find(u => u.user_id === resetPasswordUserId)?.email}</strong>
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Nueva contraseña</Label>
+                      <Input type="password" value={newPasswordValue} onChange={e => setNewPasswordValue(e.target.value)} placeholder="Mínimo 6 caracteres" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={resetUserPassword} className="rounded-xl gap-2" disabled={newPasswordValue.length < 6}><Save className="w-4 h-4" />Cambiar</Button>
+                      <Button variant="outline" onClick={() => setResetPasswordUserId(null)} className="rounded-xl">Cancelar</Button>
                     </div>
                   </div>
                 </DialogContent>
