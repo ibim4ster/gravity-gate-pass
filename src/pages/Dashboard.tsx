@@ -224,7 +224,8 @@ const Dashboard = () => {
         const tierData = {
           event_id: eventId!, name: tier.name, price: parseFloat(tier.price),
           max_quantity: parseInt(tier.maxQuantity), expires_at: tier.expiresAt || null,
-        };
+          description: tier.description || null,
+        } as any;
         if (tier.id) {
           await supabase.from('price_tiers').update(tierData).eq('id', tier.id);
         } else {
