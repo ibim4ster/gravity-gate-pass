@@ -535,7 +535,7 @@ const Dashboard = () => {
             {showCreateEvent && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-background rounded-2xl border border-border p-6 space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-display font-semibold text-lg">{editingEventId ? 'Editar Evento' : 'Crear Evento'}</h3>
+                  <h3 className="font-display font-semibold text-lg">{editingEventId ? 'Editar Bar' : 'Crear Bar'}</h3>
                   <Button variant="ghost" size="sm" onClick={resetEventForm}><X className="w-4 h-4" /></Button>
                 </div>
 
