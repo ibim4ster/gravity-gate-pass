@@ -87,6 +87,8 @@ export type Database = {
           lineup: string | null
           maps_url: string | null
           min_age: number | null
+          offer_active: boolean
+          offer_text: string | null
           organizer_id: string | null
           status: string
           time: string
@@ -108,6 +110,8 @@ export type Database = {
           lineup?: string | null
           maps_url?: string | null
           min_age?: number | null
+          offer_active?: boolean
+          offer_text?: string | null
           organizer_id?: string | null
           status?: string
           time: string
@@ -129,6 +133,8 @@ export type Database = {
           lineup?: string | null
           maps_url?: string | null
           min_age?: number | null
+          offer_active?: boolean
+          offer_text?: string | null
           organizer_id?: string | null
           status?: string
           time?: string
@@ -146,6 +152,7 @@ export type Database = {
           event_id: string
           expires_at: string | null
           id: string
+          image_urls: string[] | null
           max_quantity: number
           name: string
           price: number
@@ -157,6 +164,7 @@ export type Database = {
           event_id: string
           expires_at?: string | null
           id?: string
+          image_urls?: string[] | null
           max_quantity: number
           name: string
           price: number
@@ -168,6 +176,7 @@ export type Database = {
           event_id?: string
           expires_at?: string | null
           id?: string
+          image_urls?: string[] | null
           max_quantity?: number
           name?: string
           price?: number
@@ -257,6 +266,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
       }
       tickets: {
         Row: {
