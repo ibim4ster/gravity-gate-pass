@@ -693,6 +693,7 @@ const Dashboard = () => {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                           t.status === 'valid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'
                         }`}>{t.status === 'valid' ? 'Válido' : 'Canjeado'}</span>
+                        {(t as any).quantity > 1 && <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold">x{(t as any).quantity}</span>}
                         <span className="font-display font-semibold text-primary">{t.price}€</span>
                         {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                       </div>
