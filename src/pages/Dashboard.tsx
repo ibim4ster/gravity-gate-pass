@@ -428,10 +428,10 @@ const Dashboard = () => {
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
                 <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Todos los eventos" />
+                  <SelectValue placeholder="Todos los bares" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los eventos</SelectItem>
+                  <SelectItem value="all">Todos los bares</SelectItem>
                   {visibleEvents.map(e => (
                     <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                   ))}
