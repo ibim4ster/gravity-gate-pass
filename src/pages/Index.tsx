@@ -130,16 +130,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8 bg-card/50">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src="/logo-sanjuan.png" alt="San Juan" className="h-8 object-contain" />
-            <span className="font-display font-semibold text-sm">Gravity</span>
-          </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Gravity · Ruta San Juan · Logroño</p>
-        </div>
-      </footer>
     </div>
   );
 };

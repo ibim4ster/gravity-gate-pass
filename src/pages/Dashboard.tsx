@@ -88,21 +88,18 @@ const Dashboard = () => {
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [eventsRes, logsRes] = await Promise.all([
-      supabase.from('events').select('*, price_tiers(*)').order('title'),
-      supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false }).limit(200),
-    ]);
-
-    if (eventsRes.data) setEvents(eventsRes.data as EventWithTiers[]);
-    if (logsRes.data) setScanLogs(logsRes.data);
-
     if (isAdmin) {
-      const [ticketsRes, profilesRes, rolesRes, assignRes] = await Promise.all([
+      const [eventsRes, logsRes, ticketsRes, profilesRes, rolesRes, assignRes] = await Promise.all([
+        supabase.from('events').select('*, price_tiers(*)').order('title'),
+        supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false }).limit(200),
         supabase.from('tickets').select('*').order('purchased_at', { ascending: false }),
         supabase.from('profiles').select('*'),
         supabase.from('user_roles').select('*'),
         supabase.from('event_assignments').select('*'),
       ]);
+
+      if (eventsRes.data) setEvents(eventsRes.data as EventWithTiers[]);
+      if (logsRes.data) setScanLogs(logsRes.data);
       if (ticketsRes.data) setTickets(ticketsRes.data);
       if (assignRes.data) setAssignments(assignRes.data);
 
@@ -119,14 +116,25 @@ const Dashboard = () => {
         })));
       }
     } else if (isStaff) {
+      // Staff: fetch assignments first, then only data for assigned events
       const { data: assignData } = await supabase.from('event_assignments').select('*').eq('user_id', user!.id);
       if (assignData) {
         setAssignments(assignData);
         const assignedEventIds = assignData.map((a: any) => a.event_id);
+
         if (assignedEventIds.length > 0) {
-          const { data: staffTickets } = await supabase
-            .from('tickets').select('*').in('event_id', assignedEventIds).order('purchased_at', { ascending: false });
-          if (staffTickets) setTickets(staffTickets);
+          const [eventsRes, staffTickets, staffLogs] = await Promise.all([
+            supabase.from('events').select('*, price_tiers(*)').in('id', assignedEventIds).order('title'),
+            supabase.from('tickets').select('*').in('event_id', assignedEventIds).order('purchased_at', { ascending: false }),
+            supabase.from('scan_logs').select('*').in('event_id', assignedEventIds).order('scanned_at', { ascending: false }).limit(200),
+          ]);
+          if (eventsRes.data) setEvents(eventsRes.data as EventWithTiers[]);
+          if (staffTickets.data) setTickets(staffTickets.data);
+          if (staffLogs.data) setScanLogs(staffLogs.data);
+        } else {
+          setEvents([]);
+          setTickets([]);
+          setScanLogs([]);
         }
       }
     }
@@ -139,9 +147,8 @@ const Dashboard = () => {
   if (!user || (!isAdmin && !isStaff)) return <Navigate to="/" replace />;
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
 
-  const visibleEvents = isStaff && !isAdmin
-    ? events.filter(e => assignments.some(a => a.event_id === e.id))
-    : events;
+  // For staff, events are already filtered by assignment in fetchData
+  const visibleEvents = events;
 
   const filteredTicketsForOverview = selectedEventFilter === 'all'
     ? tickets : tickets.filter(t => t.event_id === selectedEventFilter);
@@ -686,6 +693,7 @@ const Dashboard = () => {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                           t.status === 'valid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'
                         }`}>{t.status === 'valid' ? 'Válido' : 'Canjeado'}</span>
+                        {(t as any).quantity > 1 && <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold">x{(t as any).quantity}</span>}
                         <span className="font-display font-semibold text-primary">{t.price}€</span>
                         {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                       </div>

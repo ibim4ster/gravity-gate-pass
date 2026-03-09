@@ -38,16 +38,17 @@ const TicketView = () => {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
     const w = pdf.internal.pageSize.getWidth();
     const h = pdf.internal.pageSize.getHeight();
+    const margin = 14;
 
     // Background
-    pdf.setFillColor(244, 241, 236);
+    pdf.setFillColor(250, 249, 247);
     pdf.rect(0, 0, w, h, 'F');
 
     // Header bar
     pdf.setFillColor(45, 122, 90);
-    pdf.rect(0, 0, w, 36, 'F');
+    pdf.rect(0, 0, w, 34, 'F');
 
-    // Logo - try to load
+    // Logo
     try {
       const logoImg = new Image();
       logoImg.crossOrigin = 'anonymous';
@@ -62,46 +63,48 @@ const TicketView = () => {
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(logoImg, 0, 0);
       const logoData = canvas.toDataURL('image/png');
-      pdf.addImage(logoData, 'PNG', w / 2 - 12, 6, 24, 24);
+      pdf.addImage(logoData, 'PNG', w / 2 - 11, 5, 22, 22);
     } catch {
-      // No logo, show text
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(18);
+      pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('GRAVITY', w / 2, 22, { align: 'center' });
+      pdf.text('GRAVITY', w / 2, 20, { align: 'center' });
     }
 
-    // Title section
-    let y = 44;
-    pdf.setTextColor(26, 26, 46);
-    pdf.setFontSize(16);
+    let y = 42;
+
+    // Title
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFontSize(15);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(event?.title || 'Ruta de Pinchos', w / 2, y, { align: 'center' });
-    y += 8;
+    const title = event?.title || 'Ruta de Pinchos';
+    pdf.text(title, w / 2, y, { align: 'center' });
+    y += 7;
 
     // Event details
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(120, 120, 120);
     if (event) {
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(130, 130, 130);
       const dateStr = format(new Date(event.date), "d 'de' MMMM yyyy", { locale: es });
-      pdf.text(`📅 ${dateStr}  ·  🕐 ${event.time}h`, w / 2, y, { align: 'center' });
-      y += 5;
-      pdf.text(`📍 ${event.venue}, ${event.city}`, w / 2, y, { align: 'center' });
-      y += 8;
+      pdf.text(`${dateStr}  ·  ${event.time}h`, w / 2, y, { align: 'center' });
+      y += 4;
+      pdf.text(`${event.venue}, ${event.city}`, w / 2, y, { align: 'center' });
+      y += 7;
     }
 
     // Divider
-    pdf.setDrawColor(200, 200, 200);
+    pdf.setDrawColor(210, 210, 210);
     pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(16, y, w - 16, y);
-    y += 8;
-
-    // Ticket details grid
+    pdf.line(margin, y, w - margin, y);
     pdf.setLineDashPattern([], 0);
-    const details = [
-      ['Pack', ticket.tier_name],
-      ['Precio', `${ticket.price}€`],
+    y += 6;
+
+    // Ticket details
+    const qty = ticket.quantity || 1;
+    const details: [string, string][] = [
+      ['Pack', `${ticket.tier_name}${qty > 1 ? ` x${qty}` : ''}`],
+      ['Precio', `${ticket.price}€${qty > 1 ? ` (${qty} uds.)` : ''}`],
       ['Nombre', ticket.buyer_name],
       ['Email', ticket.buyer_email],
     ];
@@ -109,25 +112,26 @@ const TicketView = () => {
     if (ticket.buyer_phone) details.push(['Teléfono', ticket.buyer_phone]);
 
     for (const [label, value] of details) {
-      pdf.setFontSize(8);
+      pdf.setFontSize(7);
       pdf.setTextColor(160, 160, 160);
-      pdf.text(label, 18, y);
-      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(label, margin + 4, y);
+      pdf.setFontSize(9);
       pdf.setTextColor(50, 50, 50);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(String(value), w - 18, y, { align: 'right' });
+      pdf.text(String(value), w - margin - 4, y, { align: 'right' });
       pdf.setFont('helvetica', 'normal');
-      y += 7;
+      y += 6;
     }
 
-    y += 4;
+    y += 3;
 
     // Divider
-    pdf.setDrawColor(200, 200, 200);
+    pdf.setDrawColor(210, 210, 210);
     pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(16, y, w - 16, y);
+    pdf.line(margin, y, w - margin, y);
     pdf.setLineDashPattern([], 0);
-    y += 6;
+    y += 5;
 
     // QR Code
     const svgEl = qrRef.current.querySelector('svg');
@@ -136,47 +140,47 @@ const TicketView = () => {
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
-      await new Promise<void>((resolve) => {
-        img.onload = () => resolve();
-        img.src = url;
-      });
+      await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = url; });
       const canvas = document.createElement('canvas');
-      canvas.width = 400;
-      canvas.height = 400;
+      canvas.width = 400; canvas.height = 400;
       const ctx = canvas.getContext('2d')!;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 400, 400);
       ctx.drawImage(img, 0, 0, 400, 400);
       const qrData = canvas.toDataURL('image/png');
-      const qrSize = 44;
+      const qrSize = 40;
       pdf.addImage(qrData, 'PNG', w / 2 - qrSize / 2, y, qrSize, qrSize);
       URL.revokeObjectURL(url);
-      y += qrSize + 5;
+      y += qrSize + 4;
     }
 
     // QR code text
-    pdf.setFontSize(7);
+    pdf.setFontSize(6);
     pdf.setTextColor(160, 160, 160);
     pdf.setFont('courier', 'normal');
     pdf.text(ticket.qr_code, w / 2, y, { align: 'center' });
-    y += 6;
+    y += 5;
 
-    // Status badge
-    const statusText = ticket.status === 'valid' ? 'VÁLIDO' : ticket.status === 'used' ? 'USADO' : 'CANCELADO';
-    pdf.setFontSize(10);
+    // Status
+    const statusText = ticket.status === 'valid' ? 'VÁLIDO' : ticket.status === 'used' ? 'CANJEADO' : 'CANCELADO';
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
-    if (ticket.status === 'valid') {
-      pdf.setTextColor(34, 139, 34);
-    } else {
-      pdf.setTextColor(160, 160, 160);
-    }
+    pdf.setTextColor(ticket.status === 'valid' ? 34 : 160, ticket.status === 'valid' ? 139 : 160, ticket.status === 'valid' ? 34 : 160);
     pdf.text(statusText, w / 2, y, { align: 'center' });
 
+    if (ticket.status === 'used' && ticket.used_at) {
+      y += 4;
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(130, 130, 130);
+      pdf.text(`Canjeado: ${format(new Date(ticket.used_at), "d MMM yyyy HH:mm", { locale: es })}`, w / 2, y, { align: 'center' });
+    }
+
     // Footer
-    pdf.setFontSize(7);
+    pdf.setFontSize(6);
     pdf.setTextColor(180, 180, 180);
     pdf.setFont('helvetica', 'normal');
-    pdf.text('Gravity · Ruta de Pinchos Calle San Juan · Logroño', w / 2, h - 8, { align: 'center' });
+    pdf.text('Gravity · Ruta de Pinchos Calle San Juan · Logroño', w / 2, h - 6, { align: 'center' });
 
     pdf.save(`gravity-ticket-${ticket.qr_code}.pdf`);
   };
@@ -206,6 +210,7 @@ const TicketView = () => {
   if (!ticket) return <div className="container py-20 text-center text-muted-foreground">Ticket no encontrado.</div>;
 
   const qrValue = `${ticket.qr_code}|${ticket.qr_signature}`;
+  const qty = ticket.quantity || 1;
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
@@ -228,13 +233,11 @@ const TicketView = () => {
         </div>
 
         <div className="relative overflow-hidden rounded-2xl glass-card">
-          {/* Watermark */}
           <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
             <span className="font-display text-[8rem] font-bold tracking-widest rotate-[-30deg]">GRAVITY</span>
           </div>
 
           <div className="p-6 space-y-4 relative z-10">
-            {/* Logo */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src="/logo-sanjuan.png" alt="San Juan" className="w-8 h-8 rounded-lg object-contain" />
@@ -245,7 +248,7 @@ const TicketView = () => {
                 : ticket.status === 'used' ? 'bg-muted text-muted-foreground'
                 : 'bg-destructive/10 text-destructive'
               }`}>
-                {ticket.status === 'valid' ? 'Válido' : ticket.status === 'used' ? 'Usado' : 'Cancelado'}
+                {ticket.status === 'valid' ? 'Válido' : ticket.status === 'used' ? 'Canjeado' : 'Cancelado'}
               </span>
             </div>
 
@@ -263,7 +266,7 @@ const TicketView = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Tipo</p>
-                <p className="font-display font-semibold">{ticket.tier_name}</p>
+                <p className="font-display font-semibold">{ticket.tier_name}{qty > 1 ? ` x${qty}` : ''}</p>
               </div>
               <p className="font-display text-2xl font-bold text-primary">{ticket.price}€</p>
             </div>
@@ -274,6 +277,13 @@ const TicketView = () => {
               {ticket.buyer_dni && <div><p className="text-xs text-muted-foreground">DNI</p><p className="font-medium">{ticket.buyer_dni}</p></div>}
               {ticket.buyer_phone && <div><p className="text-xs text-muted-foreground">Teléfono</p><p className="font-medium">{ticket.buyer_phone}</p></div>}
             </div>
+
+            {ticket.status === 'used' && ticket.used_at && (
+              <div className="p-3 rounded-xl bg-muted border border-border">
+                <p className="text-xs text-muted-foreground">Canjeado</p>
+                <p className="text-sm font-medium">{format(new Date(ticket.used_at), "EEEE d 'de' MMMM yyyy 'a las' HH:mm", { locale: es })}</p>
+              </div>
+            )}
           </div>
 
           <div className="relative">
@@ -287,6 +297,9 @@ const TicketView = () => {
               <QRCodeSVG value={qrValue} size={180} level="H" fgColor="#0c1222" bgColor="#ffffff" />
             </div>
             <p className="text-[10px] text-muted-foreground font-mono tracking-wider">{ticket.qr_code}</p>
+            {qty > 1 && (
+              <p className="text-sm font-display font-semibold text-primary">Cantidad: {qty} uds.</p>
+            )}
           </div>
         </div>
       </motion.div>

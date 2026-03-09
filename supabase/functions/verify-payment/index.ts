@@ -30,6 +30,7 @@ serve(async (req) => {
     }
 
     const meta = session.metadata!;
+    const quantity = parseInt(meta.quantity || "1") || 1;
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -53,7 +54,7 @@ serve(async (req) => {
       });
     }
 
-    // Create ticket
+    // Create ticket with quantity
     const { data: ticket, error: ticketError } = await supabaseAdmin
       .from("tickets")
       .insert({
@@ -63,17 +64,18 @@ serve(async (req) => {
         buyer_email: meta.buyer_email,
         buyer_user_id: meta.buyer_user_id || null,
         tier_name: meta.tier_name,
-        price: parseFloat(meta.price),
+        price: parseFloat(meta.price) * quantity,
         buyer_phone: meta.buyer_phone || null,
         buyer_dni: meta.buyer_dni || null,
         buyer_dob: meta.buyer_dob || null,
+        quantity: quantity,
       })
       .select()
       .single();
 
     if (ticketError) throw ticketError;
 
-    // Increment sold count
+    // Increment sold count by quantity
     const { data: tier } = await supabaseAdmin
       .from("price_tiers")
       .select("sold")
@@ -83,7 +85,7 @@ serve(async (req) => {
     if (tier) {
       await supabaseAdmin
         .from("price_tiers")
-        .update({ sold: tier.sold + 1 })
+        .update({ sold: tier.sold + quantity })
         .eq("id", meta.tier_id);
     }
 
@@ -100,6 +102,8 @@ serve(async (req) => {
       try {
         const ticketUrl = `${req.headers.get("origin")}/ticket/${ticket.id}`;
         const eventDate = event?.date ? new Date(event.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+        const totalPrice = (parseFloat(meta.price) * quantity).toFixed(2);
+        const quantityText = quantity > 1 ? ` x${quantity}` : '';
 
         const emailHtml = `
 <!DOCTYPE html>
@@ -112,15 +116,12 @@ serve(async (req) => {
 <body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
   <div style="max-width:580px;margin:0 auto;padding:40px 20px;">
     
-    <!-- Logo Header -->
     <div style="text-align:center;margin-bottom:32px;">
       <img src="${req.headers.get("origin")}/logo-sanjuan.png" alt="Calle San Juan · Logroño" style="height:48px;" />
     </div>
 
-    <!-- Main Card -->
     <div style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
       
-      <!-- Green Header -->
       <div style="background:linear-gradient(135deg,#2d7a5a,#1d5c40);padding:40px 32px;text-align:center;">
         <div style="width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
           <span style="font-size:28px;">🎫</span>
@@ -129,7 +130,6 @@ serve(async (req) => {
         <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0;font-weight:400;">Tu pack está listo para usar</p>
       </div>
 
-      <!-- Event Info -->
       <div style="padding:32px;">
         <h2 style="color:#1d1d1f;font-size:20px;font-weight:600;margin:0 0 24px 0;letter-spacing:-0.2px;">${event?.title || 'Ruta de Pinchos'}</h2>
         
@@ -150,18 +150,20 @@ serve(async (req) => {
           </table>
         </div>
 
-        <!-- Divider -->
         <hr style="border:none;border-top:1px solid #e5e5e7;margin:0 0 24px 0;" />
 
-        <!-- Ticket Details -->
         <table style="width:100%;border-collapse:collapse;">
           <tr>
             <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Pack</td>
-            <td style="padding:10px 0;text-align:right;color:#1d1d1f;font-size:14px;font-weight:600;">${meta.tier_name}</td>
+            <td style="padding:10px 0;text-align:right;color:#1d1d1f;font-size:14px;font-weight:600;">${meta.tier_name}${quantityText}</td>
           </tr>
+          ${quantity > 1 ? `<tr>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Cantidad</td>
+            <td style="padding:10px 0;text-align:right;color:#1d1d1f;font-size:14px;font-weight:600;">${quantity} unidades</td>
+          </tr>` : ''}
           <tr>
-            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Precio</td>
-            <td style="padding:10px 0;text-align:right;color:#2d7a5a;font-size:14px;font-weight:600;">${meta.price}€</td>
+            <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Precio total</td>
+            <td style="padding:10px 0;text-align:right;color:#2d7a5a;font-size:14px;font-weight:600;">${totalPrice}€</td>
           </tr>
           <tr>
             <td style="padding:10px 0;color:#86868b;font-size:13px;font-weight:500;">Nombre</td>
@@ -174,14 +176,12 @@ serve(async (req) => {
         </table>
       </div>
 
-      <!-- CTA Button -->
       <div style="padding:0 32px 36px;text-align:center;">
         <a href="${ticketUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#1d5c40);color:#ffffff;padding:16px 48px;border-radius:14px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.1px;box-shadow:0 4px 12px rgba(45,122,90,0.3);">Ver mi ticket</a>
         <p style="color:#86868b;font-size:12px;margin:16px 0 0 0;font-weight:400;">Presenta el código QR en el establecimiento</p>
       </div>
     </div>
 
-    <!-- Footer -->
     <div style="text-align:center;padding:24px 0;">
       <p style="color:#86868b;font-size:11px;margin:0 0 4px 0;">Gravity · Ruta de Pinchos Calle San Juan · Logroño</p>
       <p style="color:#aeaeb2;font-size:11px;margin:0;">Este email se ha enviado automáticamente tras tu compra</p>
@@ -190,7 +190,7 @@ serve(async (req) => {
 </body>
 </html>`;
 
-        const resendRes = await fetch("https://api.resend.com/emails", {
+        await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${resendApiKey}`,
@@ -199,18 +199,13 @@ serve(async (req) => {
           body: JSON.stringify({
             from: "Gravity <onboarding@resend.dev>",
             to: [meta.buyer_email],
-            subject: `🎫 Tu pack "${meta.tier_name}" — ${event?.title || 'Gravity'}`,
+            subject: `🎫 Tu pack "${meta.tier_name}"${quantityText} — ${event?.title || 'Gravity'}`,
             html: emailHtml,
           }),
         });
-
-        const resendData = await resendRes.json();
-        console.log("Email sent:", resendData);
       } catch (emailErr) {
         console.error("Email sending failed:", emailErr);
       }
-    } else {
-      console.warn("RESEND_API_KEY not configured, skipping email");
     }
 
     return new Response(JSON.stringify({ ticketId: ticket.id }), {

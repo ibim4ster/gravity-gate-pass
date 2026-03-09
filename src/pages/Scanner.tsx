@@ -24,11 +24,38 @@ const Scanner = () => {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [assignedEventIds, setAssignedEventIds] = useState<string[] | null>(null);
+  const [events, setEvents] = useState<Tables<'events'>[]>([]);
 
   const html5QrRef = useRef<Html5Qrcode | null>(null);
   const processingRef = useRef(false);
 
-  const canScan = hasRole('staff') || hasRole('admin');
+  const isAdmin = hasRole('admin');
+  const isStaff = hasRole('staff');
+  const canScan = isStaff || isAdmin;
+
+  // Fetch assigned events for staff
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      if (!user) return;
+      if (isAdmin) {
+        setAssignedEventIds(null); // admin can scan all
+        return;
+      }
+      const { data } = await supabase
+        .from('event_assignments')
+        .select('event_id')
+        .eq('user_id', user.id);
+      const ids = data?.map(a => a.event_id) || [];
+      setAssignedEventIds(ids);
+
+      if (ids.length > 0) {
+        const { data: evts } = await supabase.from('events').select('*').in('id', ids);
+        setEvents(evts || []);
+      }
+    };
+    fetchAssignments();
+  }, [user, isAdmin]);
 
   const validateTicket = useCallback(async (qrValue: string) => {
     if (processingRef.current) return;
@@ -46,6 +73,18 @@ const Scanner = () => {
 
       if (error || !ticket) {
         setResult({ status: 'invalid', message: 'Ticket no encontrado en el sistema' });
+        return;
+      }
+
+      // Staff restriction: only scan tickets for assigned bars
+      if (!isAdmin && assignedEventIds && !assignedEventIds.includes(ticket.event_id)) {
+        setResult({ status: 'invalid', ticket, message: 'Este ticket no pertenece a tu bar asignado' });
+        if (user) {
+          await supabase.from('scan_logs').insert({
+            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
+            result: 'invalid', attendee_name: ticket.buyer_name,
+          });
+        }
         return;
       }
 
@@ -80,18 +119,19 @@ const Scanner = () => {
         });
       }
 
-      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, message: 'Canje válido ✓' });
+      const qty = (ticket as any).quantity || 1;
+      const qtyMsg = qty > 1 ? ` (${qty} uds.)` : '';
+      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, message: `Canje válido ✓${qtyMsg}` });
     } catch {
       setResult({ status: 'invalid', message: 'Error al validar' });
     } finally {
       setTimeout(() => { processingRef.current = false; }, 1500);
     }
-  }, [user]);
+  }, [user, isAdmin, assignedEventIds]);
 
   const startCamera = async () => {
     setCameraError(null);
     try {
-      // Always use html5-qrcode for maximum compatibility
       setCameraActive(true);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -143,8 +183,19 @@ const Scanner = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Staff bar info banner */}
+      {!isAdmin && assignedEventIds && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 text-center">
+          <p className="text-xs font-medium text-primary">
+            {assignedEventIds.length > 0
+              ? `Escaneando para: ${events.map(e => e.title).join(', ')}`
+              : 'No tienes ningún bar asignado. Contacta con el administrador.'
+            }
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 relative bg-black flex items-center justify-center min-h-[55vh]">
-        {/* html5-qrcode container */}
         <div className={`absolute inset-0 ${cameraActive ? '' : 'hidden'}`}>
           <div id={QR_READER_ID} className="h-full w-full [&_video]{object-fit:cover;width:100%;height:100%}" />
         </div>
@@ -164,9 +215,13 @@ const Scanner = () => {
               </div>
             </div>
             {cameraError && <div className="max-w-sm mx-auto p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">{cameraError}</div>}
-            <Button onClick={startCamera} size="lg" className="rounded-xl gap-2 shadow-lg shadow-primary/20">
-              <Zap className="w-4 h-4" /> Activar Cámara
-            </Button>
+            {!isAdmin && assignedEventIds?.length === 0 ? (
+              <p className="text-sm text-white/60">No puedes escanear porque no tienes un bar asignado.</p>
+            ) : (
+              <Button onClick={startCamera} size="lg" className="rounded-xl gap-2 shadow-lg shadow-primary/20">
+                <Zap className="w-4 h-4" /> Activar Cámara
+              </Button>
+            )}
             <p className="text-xs text-white/40 max-w-xs mx-auto">Si el escaneo automático no funciona, usa la búsqueda manual de abajo.</p>
           </div>
         )}
@@ -178,7 +233,14 @@ const Scanner = () => {
                 {result.status === 'valid' ? <CheckCircle2 className="w-20 h-20 mx-auto text-green-500" /> : result.status === 'already_used' ? <AlertTriangle className="w-20 h-20 mx-auto text-yellow-500" /> : <XCircle className="w-20 h-20 mx-auto text-red-500" />}
                 <p className="font-display text-2xl font-bold text-white">{result.status === 'valid' ? '✓ VÁLIDO' : result.status === 'already_used' ? '⚠ YA CANJEADO' : '✗ INVÁLIDO'}</p>
                 {result.ticket && <p className="text-xl font-semibold text-white">{result.ticket.buyer_name}</p>}
-                {result.ticket && <p className="text-sm text-white/60">{result.ticket.tier_name}</p>}
+                {result.ticket && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-white/60">{result.ticket.tier_name}</p>
+                    {(result.ticket as any).quantity > 1 && (
+                      <p className="text-lg font-bold text-white">Cantidad: {(result.ticket as any).quantity} uds.</p>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-white/70">{result.message}</p>
                 <Button variant="outline" onClick={() => setResult(null)} className="mt-2 rounded-xl bg-white/10 border-white/30 text-white hover:bg-white/20">Escanear otro</Button>
               </div>
