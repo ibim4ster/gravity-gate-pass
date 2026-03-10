@@ -9,12 +9,10 @@ import { ScanLine, CheckCircle2, XCircle, Search, Camera, AlertTriangle, Zap, Ca
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface ScanResult {
   status: 'valid' | 'already_used' | 'invalid';
-  ticket?: Tables<'tickets'>;
+  ticket?: any;
   eventName?: string;
   message: string;
 }
@@ -28,7 +26,7 @@ const Scanner = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [assignedEventIds, setAssignedEventIds] = useState<string[] | null>(null);
-  const [events, setEvents] = useState<Tables<'events'>[]>([]);
+  const [assignedEventNames, setAssignedEventNames] = useState<string[]>([]);
 
   const html5QrRef = useRef<Html5Qrcode | null>(null);
   const processingRef = useRef(false);
@@ -42,8 +40,6 @@ const Scanner = () => {
       if (!user) return;
       if (isAdmin) {
         setAssignedEventIds(null);
-        const { data: evts } = await supabase.from('events').select('*');
-        setEvents(evts || []);
         return;
       }
       const { data } = await supabase
@@ -54,8 +50,8 @@ const Scanner = () => {
       setAssignedEventIds(ids);
 
       if (ids.length > 0) {
-        const { data: evts } = await supabase.from('events').select('*').in('id', ids);
-        setEvents(evts || []);
+        const { data: evts } = await supabase.from('events').select('title').in('id', ids);
+        setAssignedEventNames(evts?.map(e => e.title) || []);
       }
     };
     fetchAssignments();
@@ -66,73 +62,41 @@ const Scanner = () => {
     processingRef.current = true;
 
     try {
-      const [qrCode, qrSignature] = qrValue.split('|');
+      const parts = qrValue.split('|');
+      const qrCode = parts[0] || '';
+      const qrSignature = parts[1] || '';
 
       if (!qrCode) {
         setResult({ status: 'invalid', message: 'Código QR no válido' });
         return;
       }
 
-      const { data: ticket, error } = await supabase.from('tickets').select('*').eq('qr_code', qrCode).single();
+      // Call server-side RPC — signature validation happens there
+      const { data, error } = await supabase.rpc('validate_and_redeem_ticket', {
+        _qr_code: qrCode,
+        _qr_signature: qrSignature,
+        _staff_id: user!.id,
+        _allowed_event_ids: isAdmin ? null : (assignedEventIds ?? []),
+      });
 
-      if (error || !ticket) {
-        setResult({ status: 'invalid', message: 'Ticket no encontrado en el sistema' });
+      if (error) {
+        setResult({ status: 'invalid', message: 'Error al validar el ticket' });
         return;
       }
 
-      const ev = events.find(e => e.id === ticket.event_id);
-      const eventName = ev?.title || 'Bar desconocido';
-
-      // Staff restriction
-      if (!isAdmin && assignedEventIds && !assignedEventIds.includes(ticket.event_id)) {
-        setResult({ status: 'invalid', ticket, eventName, message: 'Este ticket no pertenece a tu bar asignado' });
-        if (user) {
-          await supabase.from('scan_logs').insert({
-            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
-            result: 'invalid', attendee_name: ticket.buyer_name,
-          });
-        }
-        return;
-      }
-
-      if (qrSignature && ticket.qr_signature !== qrSignature) {
-        setResult({ status: 'invalid', ticket, eventName, message: 'Firma digital no válida — posible falsificación' });
-        if (user) {
-          await supabase.from('scan_logs').insert({
-            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
-            result: 'invalid', attendee_name: ticket.buyer_name,
-          });
-        }
-        return;
-      }
-
-      if (ticket.status === 'used') {
-        setResult({ status: 'already_used', ticket, eventName, message: `Ya canjeado el ${format(new Date(ticket.used_at!), "d MMM yyyy 'a las' HH:mm", { locale: es })}` });
-        if (user) {
-          await supabase.from('scan_logs').insert({
-            ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
-            result: 'already_used', attendee_name: ticket.buyer_name,
-          });
-        }
-        return;
-      }
-
-      await supabase.from('tickets').update({ status: 'used', used_at: new Date().toISOString(), scanned_by: user?.id ?? null }).eq('id', ticket.id);
-
-      if (user) {
-        await supabase.from('scan_logs').insert({
-          ticket_id: ticket.id, event_id: ticket.event_id, staff_id: user.id,
-          result: 'valid', attendee_name: ticket.buyer_name,
-        });
-      }
-
-      setResult({ status: 'valid', ticket: { ...ticket, status: 'used' }, eventName, message: 'Canje realizado con éxito' });
+      const res = data as any;
+      setResult({
+        status: res.status,
+        ticket: res.ticket || undefined,
+        eventName: res.eventName || undefined,
+        message: res.message,
+      });
     } catch {
       setResult({ status: 'invalid', message: 'Error al validar' });
     } finally {
       setTimeout(() => { processingRef.current = false; }, 1500);
     }
-  }, [user, isAdmin, assignedEventIds, events]);
+  }, [user, isAdmin, assignedEventIds]);
 
   const startCamera = async () => {
     setCameraError(null);
@@ -190,7 +154,7 @@ const Scanner = () => {
         <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 text-center">
           <p className="text-xs font-medium text-primary">
             {assignedEventIds.length > 0
-              ? `Escaneando para: ${events.map(e => e.title).join(', ')}`
+              ? `Escaneando para: ${assignedEventNames.join(', ')}`
               : 'No tienes ningún bar asignado. Contacta con el administrador.'}
           </p>
         </div>
@@ -235,7 +199,6 @@ const Scanner = () => {
                 result.status === 'already_used' ? 'border-yellow-500 bg-yellow-500/20' :
                 'border-red-500 bg-red-500/20'
               }`}>
-                {/* Status icon */}
                 <div className="text-center">
                   {result.status === 'valid' ? <CheckCircle2 className="w-16 h-16 mx-auto text-green-500" /> :
                    result.status === 'already_used' ? <AlertTriangle className="w-16 h-16 mx-auto text-yellow-500" /> :
@@ -245,7 +208,6 @@ const Scanner = () => {
                   </p>
                 </div>
 
-                {/* Detailed info */}
                 {result.ticket && (
                   <div className="space-y-3 bg-black/20 rounded-2xl p-4">
                     <div className="flex items-center gap-3">
