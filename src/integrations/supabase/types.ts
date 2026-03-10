@@ -392,12 +392,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_ticket_by_id: {
+        Args: { _ticket_id: string }
+        Returns: {
+          buyer_dni: string
+          buyer_dob: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          buyer_user_id: string
+          event_id: string
+          id: string
+          price: number
+          price_tier_id: string
+          purchased_at: string
+          qr_code: string
+          qr_signature: string
+          quantity: number
+          scanned_by: string
+          status: string
+          tier_name: string
+          used_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      validate_and_redeem_ticket: {
+        Args: {
+          _allowed_event_ids?: string[]
+          _qr_code: string
+          _qr_signature: string
+          _staff_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

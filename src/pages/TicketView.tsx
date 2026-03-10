@@ -21,10 +21,11 @@ const TicketView = () => {
 
   useEffect(() => {
     const fetchTicket = async () => {
-      const { data } = await supabase.from('tickets').select('*').eq('id', ticketId!).maybeSingle();
-      if (data) {
-        setTicket(data);
-        const { data: ev } = await supabase.from('events').select('*').eq('id', data.event_id).single();
+      const { data } = await supabase.rpc('get_ticket_by_id', { _ticket_id: ticketId! });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        setTicket(row);
+        const { data: ev } = await supabase.from('events').select('*').eq('id', row.event_id).single();
         setEvent(ev);
       }
       setLoading(false);
