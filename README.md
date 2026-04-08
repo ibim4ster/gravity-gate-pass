@@ -1,73 +1,189 @@
-# Welcome to your Lovable project
+# Gravity Gate Pass - Ruta de Pinchos Calle San Juan
 
-## Project info
+Plataforma de ticketing digital para la famosa Ruta de Pinchos de la Calle San Juan en Logroño, España. Permite comprar packs digitales de pinchos y vinos, y canjearlos mediante códigos QR en los bares participantes.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🎯 Características Principales
 
-## How can I edit this code?
+### Para Clientes
+- **Descubrimiento de Bares**: Explora los establecimientos participantes en Calle San Juan con búsqueda y filtrado
+- **Compra Digital**: Proceso de checkout seguro con Stripe integrado
+- **Billetera Digital**: Almacena y gestiona tus packs de pinchos comprados
+- **QR Codes**: Códigos QR únicos con sistema de firma dual para evitar fraudes
 
-There are several ways of editing your application.
+### Para Staff
+- **Escáner QR**: Validación rápida de tickets en móvil
+- **Control de Acceso**: Solo pueden escanear en los bares asignados
+- **Registro de Actividad**: Auditoría completa de todos los canjes
 
-**Use Lovable**
+### Para Administradores
+- **Gestión de Bares**: Catálogo de establecimientos y ofertas
+- **Configuración de Precios**: Definición de packs y disponibilidad
+- **Monitorización**: Logs en tiempo real y estadísticas
+- **Gestión de Usuarios**: Roles y permisos
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🏗️ Arquitectura Técnica
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend
+- **React 18** con TypeScript y Vite
+- **Tailwind CSS** con diseño glassmorphism
+- **shadcn/ui** componentes accesibles
+- **Framer Motion** para animaciones
+- **React Router** para navegación
 
-**Use your preferred IDE**
+### Backend
+- **Supabase** como BaaS (Backend-as-a-Service)
+  - PostgreSQL para base de datos
+  - Autenticación integrada
+  - Edge Functions con Deno
+  - Row Level Security (RLS)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Integraciones
+- **Stripe**: Procesamiento de pagos
+- **Supabase Auth**: Gestión de usuarios y roles
+- **Google Maps**: Visualización de ubicación
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 📁 Estructura del Proyecto
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/          # Componentes UI reutilizables
+│   ├── ui/             # Componentes base (shadcn/ui)
+│   ├── AppNav.tsx      # Navegación principal
+│   ├── EventCard.tsx   # Tarjeta de bar/evento
+│   └── Footer.tsx      # Pie de página
+├── pages/              # Páginas de la aplicación
+│   ├── Index.tsx       # Landing principal
+│   ├── Checkout.tsx    # Flujo de compra
+│   ├── Scanner.tsx     # Escáner QR para staff
+│   ├── Dashboard.tsx   # Panel de administración
+│   └── Wallet.tsx      # Billetera digital
+├── hooks/              # Hooks personalizados
+├── integrations/       # Configuración de Supabase
+└── lib/                # Utilidades
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Configuración Local
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Prerrequisitos
+- Node.js 18+
+- Bun (recomendado) o npm
+- Cuenta de Supabase
+- Cuenta de Stripe (para pruebas)
 
-**Use GitHub Codespaces**
+### Instalación
+```bash
+# Clonar el repositorio
+git clone https://github.com/ibim4ster/gravity-gate-pass.git
+cd gravity-gate-pass
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Instalar dependencias
+bun install
 
-## What technologies are used for this project?
+# Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con tus credenciales
 
-This project is built with:
+# Iniciar desarrollo
+bun dev
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Variables de Entorno
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
+```
 
-## How can I deploy this project?
+## 🔐 Modelo de Seguridad
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+El sistema implementa múltiples capas de seguridad:
 
-## Can I connect a custom domain to my Lovable project?
+1. **Firma Dual QR**: Cada ticket contiene `qr_code|qr_signature` para evitar spoofing
+2. **Row Level Security**: Políticas de acceso a nivel de fila en Supabase
+3. **Roles de Usuario**: `admin`, `staff`, `client` con permisos diferenciados
+4. **Validación Idempotente**: Prevención de duplicados en creación de tickets
 
-Yes, you can!
+## 📊 Flujo de Usuario
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```mermaid
+graph TD
+    A[Usuario visita Index.tsx] --> B[Explora bares]
+    B --> C[Selecciona pack]
+    C --> D[Checkout.tsx]
+    D --> E[Pago con Stripe]
+    E --> F[verify-payment Edge Function]
+    F --> G[Ticket generado]
+    G --> H[QR en Wallet.tsx]
+    H --> I[Escaneo en Scanner.tsx]
+    I --> J[validate_and_redeem_ticket RPC]
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🎨 Diseño y Branding
+
+- **Paleta de Colores**: Basada en la identidad de Calle San Juan
+  - Primary: Verde (#228c22)
+  - Secondary: Crema cálido
+  - Accent: Arena clara
+- **Tipografía**: DM Sans para headers
+- **Estilo**: Glassmorphism con `backdrop-blur-xl`
+
+## 📱 Páginas Principales
+
+| Página | Ruta | Descripción |
+|--------|------|-------------|
+| **Inicio** | `/` | Descubrimiento de bares y búsqueda |
+| **Checkout** | `/checkout/:eventId/:tierId` | Flujo de compra |
+| **Billetera** | `/wallet` | Gestión de tickets del usuario |
+| **Escáner** | `/scanner` | Validación de QR (staff) |
+| **Dashboard** | `/dashboard` | Panel de administración |
+| **Contacto** | `/contacto` | Registro de nuevos bares |
+
+## 🔧 Edge Functions
+
+### `create-payment`
+Crea sesión de checkout en Stripe para iniciar el proceso de pago.
+
+### `verify-payment`
+Procesa webhook de Stripe, crea tickets de forma idempotente.
+
+### `admin-manage-user`
+Función administrativa para gestión de usuarios con `service_role`.
+
+## 📋 Base de Datos
+
+### Tablas Principales
+- `events`: Bares/establecimientos participantes
+- `price_tiers`: Configuración de packs y precios
+- `tickets`: Tickets generados con QR y estado
+- `scan_logs`: Registro de auditoría de escaneos
+- `user_roles`: Asignación de roles a usuarios
+
+## 🚀 Despliegue
+
+### Frontend (Vercel/Netlify)
+```bash
+bun build
+# Desplegar la carpeta dist/
+```
+
+### Backend (Supabase)
+```bash
+supabase login
+supabase link --project-ref your-project
+supabase db push
+supabase functions deploy
+```
+
+## 📄 Licencia
+
+© 2026 Gravity · Ruta de Pinchos Calle San Juan · Logroño
+
+---
+
+## Notes
+
+Este README está basado en la arquitectura actual del proyecto Gravity Gate Pass. El sistema está específicamente diseñado para el mercado español y la "Ruta de Pinchos" de Logroño, con localización en español y adaptación cultural al contexto de La Rioja.
+
+Wiki pages you might want to explore:
+- [Getting Started (ibim4ster/gravity-gate-pass)](/wiki/ibim4ster/gravity-gate-pass#1.1)
+- [Admin & Staff Tools (ibim4ster/gravity-gate-pass)](/wiki/ibim4ster/gravity-gate-pass#3)
